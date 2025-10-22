@@ -1,0 +1,45 @@
+# Core dependencies for CS6400 Hybrid Vector Search Project
+
+# Vector search and indexing
+faiss-cpu>=1.7.4
+# Use faiss-gpu if CUDA is available
+
+# Data processing
+numpy>=1.24.0
+pandas>=2.0.0
+pyarrow>=12.0.0
+
+# Metadata storage and querying
+duckdb>=0.9.0
+
+# Optional: Bitmap operations for efficient filtering
+pyroaring>=0.4.0
+
+# Dataset loading
+datasets>=2.14.0
+huggingface-hub>=0.16.0
+
+# Utilities
+pyyaml>=6.0
+tqdm>=4.65.0
+
+# Visualization and analysis
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Code quality
+black>=23.7.0
+flake8>=6.1.0
+isort>=5.12.0
+
+# Jupyter notebooks
+jupyter>=1.0.0
+ipykernel>=6.25.0
+
+# Performance profiling (optional)
+line_profiler>=4.0.0
+memory_profiler>=0.61.0

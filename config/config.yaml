@@ -1,0 +1,46 @@
+# Hybrid Vector Search Configuration
+
+data:
+  dataset_name: "wikipedia-en-embeddings"
+  embedding_method: "OpenAI"  # Options: OpenAI, MiniLM, GTE-small
+  n_samples: 224482
+  data_dir: "./data_files"
+
+metadata:
+  n_categories: 30
+  zipf_s: 1.2
+  importance_mean: 50
+  importance_std: 15
+  n_buckets: 64
+  regions: ["NA", "EU", "APAC", "LATAM", "AFR"]
+  region_probs: [0.4, 0.25, 0.2, 0.1, 0.05]
+  year_mixture:
+    low_weight: 0.3
+    mid_weight: 0.6
+    high_weight: 0.1
+
+index:
+  nlist: 1200  # Approximately 4*sqrt(N) for N=100k
+  m: 64        # Number of PQ subquantizers
+  nbits: 8     # Bits per subquantizer
+  use_opq: true
+  index_dir: "./index_files"
+
+search:
+  nprobe_max: 256
+  k_prime_max_factor: 10
+  growth_factor_nprobe: 1.8
+  growth_factor_k_prime: 1.5
+  initial_nprobe_factor: 1.2  # nprobe_0 = clip(1.2 * f * nlist, 8, nprobe_max)
+
+evaluation:
+  n_queries: 1000
+  k_values: [10, 20]
+  selectivity_bins: [0.01, 0.1, 0.3, 0.5, 1.0]
+  n_runs: 3
+  results_dir: "./results"
+
+experiment:
+  dataset_sizes: [100000, 200000, 300000]
+  random_seed: 42
+  n_threads: 4
