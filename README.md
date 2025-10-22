@@ -4,10 +4,11 @@ Efficient vector search combining semantic similarity with metadata filtering.
 
 ## Team Members
 
+- **Zhangding Liu** - Baselines & Evaluation
 - **Yao-Ting Huang** - Data Module
 - **Zaowei Dai** - Indexing Module
 - **Yichang Xu** - Search Module
-- **Zhangding Liu** - Baselines & Evaluation
+
 
 ## Quick Start
 
