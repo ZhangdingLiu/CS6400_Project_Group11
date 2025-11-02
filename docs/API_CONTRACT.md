@@ -1,11 +1,11 @@
 # API Contract
 
-本文档定义各模块之间的接口规范，确保团队成员实现的模块能够正确对接。
+This document defines the interface specifications between modules to ensure correct integration of code implemented by team members.
 
-## 数据格式规范
+## Data Format Specifications
 
 ### Filter Dictionary
-所有模块统一使用以下格式表示过滤条件：
+All modules must use the following format to represent filter conditions:
 ```python
 filter_dict = {
     'category': {'op': 'IN', 'values': [1, 5, 10]},
@@ -15,14 +15,14 @@ filter_dict = {
 }
 ```
 
-支持的操作符：
-- `IN`: 值在列表中
-- `RANGE`: 范围查询 (min, max)
-- `GT/LT/GTE/LTE`: 大于/小于/大于等于/小于等于
-- `EQ`: 等于
+Supported operators:
+- `IN`: Value is in the list
+- `RANGE`: Range query (min, max)
+- `GT/LT/GTE/LTE`: Greater than / Less than / Greater than or equal / Less than or equal
+- `EQ`: Equal to
 
 ### Metadata DataFrame
-5列固定格式 (与embeddings按行对应)：
+5 fixed columns (row-aligned with embeddings):
 - `category`: int32, [1, 30]
 - `importance`: int32, [1, 100]
 - `year`: int32, [0, 100]
@@ -31,7 +31,7 @@ filter_dict = {
 
 ---
 
-## 模块接口
+## Module Interfaces
 
 ### 1. Data Module (Yao-Ting Huang)
 
@@ -39,11 +39,11 @@ filter_dict = {
 ```python
 def load_embeddings(dataset_name: str, n_samples: int) -> tuple:
     """
-    从HuggingFace加载数据
+    Load data from HuggingFace
 
     Returns:
         embeddings: np.ndarray (N, d), float32, L2-normalized
-        texts: list[str], 长度N
+        texts: list[str], length N
     """
 ```
 
@@ -51,7 +51,7 @@ def load_embeddings(dataset_name: str, n_samples: int) -> tuple:
 ```python
 def generate_metadata(n_samples: int, config: dict) -> pd.DataFrame:
     """
-    生成合成metadata
+    Generate synthetic metadata
 
     Returns:
         DataFrame with 5 columns (category, importance, year, paragraph_len, region)
@@ -63,7 +63,7 @@ def generate_metadata(n_samples: int, config: dict) -> pd.DataFrame:
 def generate_queries(embeddings, metadata, n_queries: int,
                      selectivity_ranges: list) -> list[dict]:
     """
-    生成查询workload
+    Generate query workload
 
     Returns:
         List of query dicts:
@@ -83,20 +83,20 @@ def generate_queries(embeddings, metadata, n_queries: int,
 ```python
 class IVFPQIndex:
     def __init__(self, d: int, nlist: int, m: int, nbits: int):
-        """初始化IVF-PQ索引"""
+        """Initialize IVF-PQ index"""
 
     def train(self, embeddings: np.ndarray):
-        """训练索引"""
+        """Train index"""
 
     def add(self, embeddings: np.ndarray):
-        """添加向量到索引"""
+        """Add vectors to index"""
 
     def get_list_assignments(self, embeddings: np.ndarray) -> np.ndarray:
         """
-        获取每个向量所属的IVF list ID
+        Get IVF list ID for each vector
 
         Returns:
-            np.ndarray (N,), dtype=int, 值范围 [0, nlist-1]
+            np.ndarray (N,), dtype=int, value range [0, nlist-1]
         """
 
     def get_centroids(self) -> np.ndarray:
@@ -108,23 +108,23 @@ class IVFPQIndex:
     def search_preassigned(self, query: np.ndarray, list_ids: list[int],
                           k_prime: int) -> tuple:
         """
-        只搜索指定的IVF lists
+        Search only specified IVF lists
 
         Args:
             query: (d,) query vector
-            list_ids: 要搜索的list IDs
-            k_prime: 返回top-k'个结果
+            list_ids: List IDs to search
+            k_prime: Return top-k' results
 
         Returns:
             distances: np.ndarray (k_prime,)
-            ids: np.ndarray (k_prime,), 向量在数据集中的索引
+            ids: np.ndarray (k_prime,), vector indices in dataset
         """
 
     def save(self, path: str):
-        """保存索引"""
+        """Save index"""
 
     def load(self, path: str):
-        """加载索引"""
+        """Load index"""
 ```
 
 #### `indexing/metadata_signatures.py`
@@ -133,7 +133,7 @@ class MetadataSignatureBuilder:
     def build_signatures(self, metadata: pd.DataFrame,
                         list_assignments: np.ndarray) -> dict:
         """
-        为每个IVF list构建metadata签名
+        Build metadata signatures for each IVF list
 
         Returns:
             {
@@ -158,23 +158,23 @@ class MetadataSignatureBuilder:
 ```python
 class FilterAwarePruner:
     def __init__(self, signatures: dict, centroids: np.ndarray):
-        """初始化pruner"""
+        """Initialize pruner"""
 
     def apply_filter(self, filter_dict: dict) -> list[int]:
         """
-        根据filter pruning IVF lists
+        Prune IVF lists based on filter
 
         Returns:
-            candidate_list_ids: 可能包含结果的list IDs
+            candidate_list_ids: List IDs that may contain results
         """
 
     def rank_lists_by_distance(self, query: np.ndarray,
                               candidate_lists: list[int]) -> list[int]:
         """
-        按query到centroid距离排序lists
+        Rank lists by query-to-centroid distance
 
         Returns:
-            sorted_list_ids: 按距离从近到远排序
+            sorted_list_ids: Sorted from nearest to farthest
         """
 ```
 
@@ -184,18 +184,18 @@ class AdaptiveSearchPlanner:
     def initialize_parameters(self, k: int,
                             estimated_selectivity: float) -> tuple[int, int]:
         """
-        初始化nprobe和k_prime
+        Initialize nprobe and k_prime
 
         Returns:
             nprobe_0, k_prime_0
         """
 
     def should_deepen(self, n_results: int, k: int) -> bool:
-        """判断是否需要继续deepening"""
+        """Determine if deepening is needed"""
 
     def grow_parameters(self, nprobe: int, k_prime: int) -> tuple[int, int]:
         """
-        增长参数
+        Grow parameters
 
         Returns:
             new_nprobe, new_k_prime
@@ -207,22 +207,22 @@ class AdaptiveSearchPlanner:
 class HybridSearchEngine:
     def __init__(self, index: IVFPQIndex, metadata: pd.DataFrame,
                  signatures: dict, config: dict):
-        """初始化搜索引擎"""
+        """Initialize search engine"""
 
     def search(self, query: np.ndarray, filter_dict: dict,
               k: int) -> tuple:
         """
-        混合搜索主接口
+        Main hybrid search interface
 
         Args:
             query: (d,) normalized query vector
-            filter_dict: metadata过滤条件
-            k: 返回top-k个结果
+            filter_dict: Metadata filter conditions
+            k: Return top-k results
 
         Returns:
             distances: np.ndarray (<=k,)
-            ids: np.ndarray (<=k,), 满足filter的结果ID
-            stats: dict, 包含 {lists_probed, codes_scored, iterations}
+            ids: np.ndarray (<=k,), result IDs that satisfy filter
+            stats: dict, contains {lists_probed, codes_scored, iterations}
         """
 ```
 
@@ -236,7 +236,7 @@ class PreFilterBruteForce:
     def search(self, query: np.ndarray, filter_dict: dict,
               k: int) -> tuple:
         """
-        Pre-filter baseline: 先filter再精确搜索
+        Pre-filter baseline: filter first, then exact search
 
         Returns:
             distances, ids, stats
@@ -249,7 +249,7 @@ class PostFilterANN:
     def search(self, query: np.ndarray, filter_dict: dict,
               k: int) -> tuple:
         """
-        Post-filter baseline: ANN搜索后filter，不足则retry
+        Post-filter baseline: ANN search then filter, retry if insufficient
 
         Returns:
             distances, ids, stats
@@ -266,7 +266,7 @@ class OracleSearch:
     def search(self, query: np.ndarray, filter_dict: dict,
               k: int) -> tuple:
         """
-        精确搜索ground truth
+        Exact search ground truth
 
         Returns:
             distances, ids, stats
@@ -277,7 +277,7 @@ class OracleSearch:
 ```python
 def compute_recall(predicted_ids: np.ndarray,
                    ground_truth_ids: np.ndarray, k: int) -> float:
-    """计算recall@k"""
+    """Compute recall@k"""
 
 def compute_latency_stats(latencies: list[float]) -> dict:
     """
@@ -292,7 +292,7 @@ class Evaluator:
     def run_experiments(self, methods: dict, queries: list,
                        ground_truth: dict) -> pd.DataFrame:
         """
-        对比多个方法
+        Compare multiple methods
 
         Returns:
             DataFrame with columns: [method, selectivity_range, recall@k, p50, p95, p99]
@@ -301,13 +301,13 @@ class Evaluator:
 
 ---
 
-## 集成检查清单
+## Integration Checklist
 
-在合并代码前，请确保：
+Before merging code, ensure:
 
-- [ ] 函数签名与API_CONTRACT完全一致
-- [ ] 返回值类型和格式符合规范
-- [ ] 添加了对应的单元测试
-- [ ] filter_dict格式统一
-- [ ] metadata DataFrame列顺序正确
-- [ ] 向量已L2归一化（使用cosine similarity）
+- [ ] Function signatures match API_CONTRACT exactly
+- [ ] Return value types and formats conform to specifications
+- [ ] Corresponding unit tests added
+- [ ] filter_dict format is consistent
+- [ ] metadata DataFrame column order is correct
+- [ ] Vectors are L2-normalized (using cosine similarity)

@@ -1,216 +1,216 @@
-# Git 工作流程文档
+# Git Workflow Documentation
 
-本文档定义了CS6400 Group 11项目的Git协作规范，所有团队成员必须遵守。
+This document defines the Git collaboration standards for CS6400 Group 11 project. All team members must follow these guidelines.
 
-## 分支策略
+## Branching Strategy
 
-### 分支类型
+### Branch Types
 
 ```
-main (生产分支)
-  └── develop (开发集成分支)
-       ├── feature/data-loader (功能分支 - Yao-Ting)
-       ├── feature/indexing-ivf (功能分支 - Zaowei)
-       ├── feature/search-pruning (功能分支 - Yichang)
-       └── feature/baselines-eval (功能分支 - Zhangding)
+main (production branch)
+  └── develop (development integration branch)
+       ├── feature/data-loader (feature branch - Yao-Ting)
+       ├── feature/indexing-ivf (feature branch - Zaowei)
+       ├── feature/search-pruning (feature branch - Yichang)
+       └── feature/baselines-eval (feature branch - Zhangding)
 ```
 
-**分支说明：**
-- **main**: 稳定的里程碑版本，只在项目重要节点更新
-- **develop**: 开发集成分支，所有功能分支merge到这里
-- **feature/\<module\>-\<name\>**: 个人功能分支，从develop创建
+**Branch Descriptions:**
+- **main**: Stable milestone version, only updated at important project milestones
+- **develop**: Development integration branch, all feature branches merge here
+- **feature/\<module\>-\<name\>**: Individual feature branches, created from develop
 
-### 分支规则
+### Branch Rules
 
-1. ✅ **允许的操作**：
-   - 从develop创建feature分支
-   - feature分支merge到develop
-   - develop在里程碑时merge到main
+1. ✅ **Allowed Operations**:
+   - Create feature branches from develop
+   - Merge feature branches to develop
+   - Merge develop to main at milestones
 
-2. ❌ **禁止的操作**：
-   - 直接push到main分支
-   - feature分支直接merge到main
-   - 跨feature分支直接merge
+2. ❌ **Prohibited Operations**:
+   - Direct push to main branch
+   - Direct merge feature branches to main
+   - Direct merge across feature branches
 
 ---
 
-## 完整工作流程
+## Complete Workflow
 
-### 步骤1：开始新任务
+### Step 1: Starting a New Task
 
 ```bash
-# 1. 确保在develop分支
+# 1. Ensure you're on develop branch
 git checkout develop
 
-# 2. 拉取最新代码（避免基于过期代码开发）
+# 2. Pull latest code (avoid developing on outdated code)
 git pull origin develop
 
-# 3. 创建功能分支
+# 3. Create feature branch
 git checkout -b feature/<module>-<description>
 
-# 示例：
+# Examples:
 git checkout -b feature/data-loader
 git checkout -b feature/indexing-signatures
 git checkout -b feature/search-pruning
 git checkout -b feature/baseline-postfilter
 ```
 
-### 步骤2：开发过程中
+### Step 2: During Development
 
 ```bash
-# 1. 编写代码...
+# 1. Write code...
 
-# 2. 查看修改
+# 2. View changes
 git status
 git diff
 
-# 3. 添加修改到暂存区
-git add <文件名>           # 添加指定文件
-git add .                  # 添加所有修改（谨慎使用）
+# 3. Add changes to staging area
+git add <filename>           # Add specific file
+git add .                    # Add all changes (use with caution)
 
-# 4. 提交（遵循commit规范）
+# 4. Commit (follow commit conventions)
 git commit -m "feat(data): implement Zipf distribution for category generation"
 
-# 5. 定期推送到远程（备份 + 让团队看到进度）
-git push origin feature/<你的分支名>
+# 5. Push to remote regularly (backup + let team see progress)
+git push origin feature/<your-branch-name>
 ```
 
-**开发建议：**
-- 频繁commit（每完成一个小功能就commit）
-- 每天至少push一次（避免代码丢失）
-- commit message要清晰描述做了什么
+**Development Recommendations:**
+- Commit frequently (commit after completing each small feature)
+- Push at least once per day (avoid code loss)
+- commit messages should clearly describe what was done
 
-### 步骤3：完成开发，准备合并
+### Step 3: Completing Development, Preparing to Merge
 
 ```bash
-# 1. 确保所有修改已提交
-git status  # 应该显示 "nothing to commit, working tree clean"
+# 1. Ensure all changes are committed
+git status  # Should show "nothing to commit, working tree clean"
 
-# 2. 拉取最新develop（可能其他人已经合并了代码）
+# 2. Pull latest develop (others may have merged code)
 git checkout develop
 git pull origin develop
 
-# 3. 切回feature分支
-git checkout feature/<你的分支名>
+# 3. Switch back to feature branch
+git checkout feature/<your-branch-name>
 
-# 4. 将develop的最新代码合并到你的分支（解决可能的冲突）
+# 4. Merge develop's latest code into your branch (resolve potential conflicts)
 git merge develop
 
-# 5. 如果有冲突，解决后提交
-git add <解决冲突的文件>
+# 5. If there are conflicts, resolve them and commit
+git add <resolved-file>
 git commit -m "merge: resolve conflicts with develop"
 
-# 6. 推送到远程
-git push origin feature/<你的分支名>
+# 6. Push to remote
+git push origin feature/<your-branch-name>
 ```
 
-### 步骤4：创建Pull Request (PR)
+### Step 4: Creating Pull Request (PR)
 
-**在GitHub网页操作：**
+**On GitHub web interface:**
 
-1. 访问：https://github.com/ZhangdingLiu/CS6400_Project_Group11
-2. 点击 **"Pull requests"** → **"New pull request"**
-3. 设置分支：
-   - **base**: `develop` ← 合并目标
-   - **compare**: `feature/<你的分支名>` ← 你的功能分支
-4. 填写PR标题和描述：
+1. Visit: https://github.com/ZhangdingLiu/CS6400_Project_Group11
+2. Click **"Pull requests"** → **"New pull request"**
+3. Set branches:
+   - **base**: `develop` ← merge target
+   - **compare**: `feature/<your-branch-name>` ← your feature branch
+4. Fill in PR title and description:
 
 ```markdown
-## 完成内容
-- [x] 实现了XXX功能
-- [x] 添加了单元测试
-- [x] 更新了相关文档
+## Completed Work
+- [x] Implemented XXX feature
+- [x] Added unit tests
+- [x] Updated relevant documentation
 
-## 测试情况
-- [x] 所有单元测试通过 (`pytest tests/test_xxx.py`)
-- [x] 函数签名与API_CONTRACT.md一致
-- [x] 代码符合Python规范（类型提示、文档字符串）
+## Testing Status
+- [x] All unit tests pass (`pytest tests/test_xxx.py`)
+- [x] Function signatures match API_CONTRACT.md
+- [x] Code follows Python standards (type hints, docstrings)
 
-## 接口验证
-- [x] 输入/输出格式符合API_CONTRACT规范
-- [x] 与依赖模块接口匹配
+## Interface Verification
+- [x] Input/output format conforms to API_CONTRACT specs
+- [x] Matches dependent module interfaces
 
-## 注意事项
-（说明任何需要reviewer注意的地方）
+## Notes
+(Describe anything reviewers should pay attention to)
 ```
 
-5. 请求团队成员review（右侧Reviewers选择至少1人）
-6. 等待review反馈
+5. Request team member review (select at least 1 person in Reviewers on the right)
+6. Wait for review feedback
 
-### 步骤5：代码Review
+### Step 5: Code Review
 
-**作为PR创建者：**
-- 根据review意见修改代码
-- 在feature分支上commit并push（PR会自动更新）
-- 回复reviewer的comments
+**As PR Creator:**
+- Modify code based on review comments
+- Commit and push on feature branch (PR will auto-update)
+- Reply to reviewer's comments
 
-**作为Reviewer：**
-- 检查代码质量、测试覆盖、接口一致性
-- 在GitHub PR页面添加comments
-- 确认无问题后点击 **"Approve"**
+**As Reviewer:**
+- Check code quality, test coverage, interface consistency
+- Add comments on GitHub PR page
+- Click **"Approve"** when confirmed no issues
 
-### 步骤6：合并到develop
+### Step 6: Merging to develop
 
-**PR通过review后：**
+**After PR passes review:**
 
-1. 在GitHub PR页面点击 **"Merge pull request"**
-2. 选择合并方式：
-   - **Create a merge commit** (推荐) - 保留完整历史
-   - Squash and merge - 压缩为单个commit（适合很多琐碎commit）
-3. 确认merge
-4. 删除远程feature分支（GitHub会提示）
+1. Click **"Merge pull request"** on GitHub PR page
+2. Select merge method:
+   - **Create a merge commit** (recommended) - preserve complete history
+   - Squash and merge - compress into single commit (suitable for many trivial commits)
+3. Confirm merge
+4. Delete remote feature branch (GitHub will prompt)
 
-**本地清理：**
+**Local Cleanup:**
 ```bash
-# 1. 切换到develop并更新
+# 1. Switch to develop and update
 git checkout develop
 git pull origin develop
 
-# 2. 删除本地feature分支
-git branch -d feature/<你的分支名>
+# 2. Delete local feature branch
+git branch -d feature/<your-branch-name>
 
-# 3. 如果远程分支没删除，手动删除
-git push origin --delete feature/<你的分支名>
+# 3. If remote branch wasn't deleted, manually delete
+git push origin --delete feature/<your-branch-name>
 ```
 
 ---
 
-## Commit Message 规范
+## Commit Message Conventions
 
-### 格式
+### Format
 ```
 <type>(<scope>): <subject>
 
-<body>（可选）
+<body>(optional)
 ```
 
-### Type类型
-- **feat**: 新功能
-- **fix**: bug修复
-- **test**: 添加/修改测试
-- **docs**: 文档更新
-- **refactor**: 重构（不改变功能）
-- **style**: 代码格式调整（不影响逻辑）
-- **chore**: 构建/工具配置
+### Type Categories
+- **feat**: New feature
+- **fix**: Bug fix
+- **test**: Add/modify tests
+- **docs**: Documentation update
+- **refactor**: Refactoring (no functionality change)
+- **style**: Code formatting (no logic change)
+- **chore**: Build/tool configuration
 
-### Scope范围
-- **data**: 数据模块
-- **indexing**: 索引模块
-- **search**: 搜索模块
-- **baselines**: 基线模块
-- **evaluation**: 评估模块
-- **config**: 配置文件
-- **docs**: 文档
+### Scope Categories
+- **data**: Data module
+- **indexing**: Indexing module
+- **search**: Search module
+- **baselines**: Baselines module
+- **evaluation**: Evaluation module
+- **config**: Configuration files
+- **docs**: Documentation
 
-### 示例
+### Examples
 ```bash
-# 好的commit message ✅
+# Good commit messages ✅
 git commit -m "feat(data): implement query generator with selectivity control"
 git commit -m "fix(indexing): correct IVF list assignment boundary check"
 git commit -m "test(search): add unit tests for pruning logic"
 git commit -m "docs(api): update signature format in API_CONTRACT.md"
 
-# 不好的commit message ❌
+# Bad commit messages ❌
 git commit -m "update code"
 git commit -m "fix bug"
 git commit -m "wip"
@@ -218,76 +218,76 @@ git commit -m "wip"
 
 ---
 
-## 常见场景处理
+## Common Scenarios
 
-### 场景1：忘记从develop创建分支
+### Scenario 1: Forgot to Create Branch from develop
 
 ```bash
-# 如果你在main分支上开发了
-git checkout -b feature/temp-save  # 先保存当前工作
+# If you developed on main branch
+git checkout -b feature/temp-save  # Save current work first
 git checkout develop
 git pull origin develop
 git checkout -b feature/correct-branch
-git merge feature/temp-save  # 把之前的工作合并过来
-git branch -d feature/temp-save  # 删除临时分支
+git merge feature/temp-save  # Merge previous work
+git branch -d feature/temp-save  # Delete temp branch
 ```
 
-### 场景2：合并时出现冲突
+### Scenario 2: Merge Conflicts
 
 ```bash
 git merge develop
-# 出现冲突提示
+# Conflict prompt appears
 
-# 1. 查看冲突文件
+# 1. View conflicted files
 git status
 
-# 2. 打开冲突文件，手动解决（删除<<<<< ===== >>>>>标记）
-# 3. 标记为已解决
-git add <解决的文件>
+# 2. Open conflicted files, manually resolve (remove <<<<< ===== >>>>> markers)
+# 3. Mark as resolved
+git add <resolved-file>
 
-# 4. 完成merge
+# 4. Complete merge
 git commit -m "merge: resolve conflicts with develop"
 ```
 
-### 场景3：需要紧急修复别人的bug
+### Scenario 3: Need to Urgently Fix Someone's Bug
 
 ```bash
-# 1. 从develop创建hotfix分支
+# 1. Create hotfix branch from develop
 git checkout develop
 git pull origin develop
 git checkout -b hotfix/fix-critical-issue
 
-# 2. 修复并提交
-git add <修复的文件>
+# 2. Fix and commit
+git add <fixed-file>
 git commit -m "fix(module): resolve critical issue in XXX"
 
-# 3. 推送并创建PR（标注为urgent）
+# 3. Push and create PR (mark as urgent)
 git push origin hotfix/fix-critical-issue
 ```
 
-### 场景4：想撤销最近的commit
+### Scenario 4: Want to Undo Recent Commit
 
 ```bash
-# 撤销commit但保留修改（最常用）
+# Undo commit but keep changes (most common)
 git reset --soft HEAD~1
 
-# 撤销commit且丢弃修改（危险！）
+# Undo commit and discard changes (dangerous!)
 git reset --hard HEAD~1
 
-# 如果已经push，不要用reset，用revert
+# If already pushed, don't use reset, use revert
 git revert HEAD
-git push origin feature/<分支名>
+git push origin feature/<branch-name>
 ```
 
-### 场景5：拉取时出现"需要先commit"
+### Scenario 5: Pull Shows "Need to commit first"
 
 ```bash
-# 方法1：暂存当前修改
+# Method 1: Stash current changes
 git stash
 git pull origin develop
-git stash pop  # 恢复修改
+git stash pop  # Restore changes
 
-# 方法2：先commit
+# Method 2: Commit first
 git add .
 git commit -m "wip: save work in progress"
 git pull origin develop
@@ -295,18 +295,18 @@ git pull origin develop
 
 ---
 
-## 合并到main的流程（里程碑发布）
+## Merging to main (Milestone Release)
 
-**仅在重要节点执行（如Phase 1完成、最终提交前）：**
+**Only execute at important milestones (e.g., Phase 1 completion, before final submission):**
 
 ```bash
-# 1. 确保develop稳定（所有测试通过）
+# 1. Ensure develop is stable (all tests pass)
 git checkout develop
 pytest tests/
 
-# 2. 在GitHub创建PR: develop → main
-# 3. 团队集体review
-# 4. Merge后打tag
+# 2. Create PR on GitHub: develop → main
+# 3. Team collective review
+# 4. After merge, tag the release
 git checkout main
 git pull origin main
 git tag -a v1.0 -m "Phase 1 milestone: all modules implemented"
@@ -315,110 +315,110 @@ git push origin v1.0
 
 ---
 
-## 团队协作最佳实践
+## Team Collaboration Best Practices
 
-### ✅ 推荐做法
-1. **每天开始工作前**：`git pull origin develop`
-2. **每完成一个功能**：commit并push
-3. **准备merge前**：先merge develop到自己分支，解决冲突
-4. **PR描述详细**：让reviewer快速理解你做了什么
-5. **及时响应review**：收到comments后24小时内回复
+### ✅ Recommended Practices
+1. **Every day before starting work**: `git pull origin develop`
+2. **After completing each feature**: commit and push
+3. **Before preparing to merge**: merge develop to your branch first, resolve conflicts
+4. **Detailed PR descriptions**: let reviewers quickly understand what you did
+5. **Respond to reviews promptly**: reply within 24 hours of receiving comments
 
-### ❌ 避免做法
-1. **不要在main分支开发**
-2. **不要长时间不push**（超过2天）
-3. **不要提交大文件**（数据文件、模型文件用.gitignore排除）
-4. **不要force push到共享分支**（develop/main）
-5. **不要忽略冲突直接merge**
-
----
-
-## 检查清单
-
-### 创建PR前必查
-- [ ] 代码通过所有测试 (`pytest tests/`)
-- [ ] 函数签名与 `docs/API_CONTRACT.md` 一致
-- [ ] 添加了必要的单元测试
-- [ ] 没有提交敏感信息（密钥、个人路径）
-- [ ] 没有提交大文件（>10MB）
-- [ ] commit message符合规范
-- [ ] 已解决所有merge冲突
-
-### Merge PR前必查
-- [ ] 至少1人approve
-- [ ] CI测试通过（如果配置了）
-- [ ] 没有unresolved comments
-- [ ] 确认merge目标是develop（不是main）
+### ❌ Practices to Avoid
+1. **Don't develop on main branch**
+2. **Don't go too long without pushing** (more than 2 days)
+3. **Don't commit large files** (exclude data files, model files with .gitignore)
+4. **Don't force push to shared branches** (develop/main)
+5. **Don't ignore conflicts and merge directly**
 
 ---
 
-## 快速参考
+## Checklist
+
+### Before Creating PR
+- [ ] Code passes all tests (`pytest tests/`)
+- [ ] Function signatures match `docs/API_CONTRACT.md`
+- [ ] Added necessary unit tests
+- [ ] No sensitive information committed (keys, personal paths)
+- [ ] No large files committed (>10MB)
+- [ ] commit messages follow conventions
+- [ ] All merge conflicts resolved
+
+### Before Merging PR
+- [ ] At least 1 person approved
+- [ ] CI tests pass (if configured)
+- [ ] No unresolved comments
+- [ ] Confirm merge target is develop (not main)
+
+---
+
+## Quick Reference
 
 ```bash
-# 常用命令速查
-git status                    # 查看状态
-git log --oneline -10         # 查看最近10条commit
-git branch -a                 # 查看所有分支
-git diff                      # 查看未暂存的修改
-git diff --staged             # 查看已暂存的修改
+# Common command reference
+git status                    # View status
+git log --oneline -10         # View last 10 commits
+git branch -a                 # View all branches
+git diff                      # View unstaged changes
+git diff --staged             # View staged changes
 
-# 分支操作
-git checkout <branch>         # 切换分支
-git checkout -b <branch>      # 创建并切换分支
-git branch -d <branch>        # 删除本地分支
-git push origin --delete <b>  # 删除远程分支
+# Branch operations
+git checkout <branch>         # Switch branch
+git checkout -b <branch>      # Create and switch branch
+git branch -d <branch>        # Delete local branch
+git push origin --delete <b>  # Delete remote branch
 
-# 同步操作
-git pull origin develop       # 拉取develop最新代码
-git push origin <branch>      # 推送到远程
-git fetch origin              # 获取远程更新（不合并）
+# Sync operations
+git pull origin develop       # Pull latest develop code
+git push origin <branch>      # Push to remote
+git fetch origin              # Fetch remote updates (no merge)
 
-# 撤销操作
-git checkout -- <file>        # 撤销文件修改
-git reset HEAD <file>         # 取消暂存
-git reset --soft HEAD~1       # 撤销最近1次commit
+# Undo operations
+git checkout -- <file>        # Undo file changes
+git reset HEAD <file>         # Unstage
+git reset --soft HEAD~1       # Undo last 1 commit
 ```
 
 ---
 
-## 问题排查
+## Troubleshooting
 
-### 问题1：push被拒绝
+### Issue 1: Push Rejected
 ```
-错误: ! [rejected] feature/xxx -> feature/xxx (non-fast-forward)
+Error: ! [rejected] feature/xxx -> feature/xxx (non-fast-forward)
 ```
-**解决**：先pull，解决冲突后再push
+**Solution**: Pull first, resolve conflicts, then push
 ```bash
-git pull origin feature/<分支名>
-git push origin feature/<分支名>
+git pull origin feature/<branch-name>
+git push origin feature/<branch-name>
 ```
 
-### 问题2：找不到分支
+### Issue 2: Branch Not Found
 ```
-错误: pathspec 'develop' did not match any file(s) known to git
+Error: pathspec 'develop' did not match any file(s) known to git
 ```
-**解决**：fetch远程分支
+**Solution**: Fetch remote branches
 ```bash
 git fetch origin
 git checkout develop
 ```
 
-### 问题3：冲突太多无法解决
+### Issue 3: Too Many Conflicts to Resolve
 ```bash
-# 放弃当前merge
+# Abort current merge
 git merge --abort
 
-# 重新开始（慎用）
+# Start fresh (use with caution)
 git reset --hard origin/develop
 ```
 
 ---
 
-## 团队联系方式
+## Team Contact
 
-遇到Git问题无法解决时：
-1. 先查阅本文档
-2. 在团队群里询问
-3. 必要时组织线上会议集体解决
+When encountering Git issues you can't resolve:
+1. Consult this document first
+2. Ask in team chat
+3. Organize online meeting if necessary to resolve collectively
 
-**重要提醒**：不确定的操作（尤其是reset、force push）请先咨询团队！
+**Important Reminder**: Consult the team first before performing uncertain operations (especially reset, force push)!

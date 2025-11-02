@@ -14,9 +14,9 @@ Efficient vector search combining semantic similarity with metadata filtering.
 
 **All team members MUST read these before starting:**
 
-1. **[docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md)** - Git协作规范（分支策略、PR流程、commit规范）
-2. **[docs/API_CONTRACT.md](docs/API_CONTRACT.md)** - 模块接口规范（确保代码能正确对接）
-3. **[TASK_ASSIGNMENT.md](TASK_ASSIGNMENT.md)** - 个人任务分配
+1. **[docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md)** - Git collaboration workflow (branching strategy, PR process, commit conventions)
+2. **[docs/API_CONTRACT.md](docs/API_CONTRACT.md)** - Module interface specifications (ensures code integration)
+3. **[TASK_ASSIGNMENT.md](TASK_ASSIGNMENT.md)** - Individual task assignments
 
 ## Quick Start
 
@@ -41,8 +41,8 @@ git checkout -b feature/your-module-name
 ```
 CS6400_Project_Group11/
 ├── docs/              # 📋 Documentation
-│   ├── GIT_WORKFLOW.md    # ⭐ Git协作规范 (必读!)
-│   └── API_CONTRACT.md    # ⭐ 接口规范 (必读!)
+│   ├── GIT_WORKFLOW.md    # ⭐ Git workflow (MUST READ!)
+│   └── API_CONTRACT.md    # ⭐ Interface specs (MUST READ!)
 ├── data/              # Data loading & preprocessing (Yao-Ting)
 ├── indexing/          # IVF-PQ index & signatures (Zaowei)
 ├── search/            # Search engine (Yichang)
@@ -51,7 +51,7 @@ CS6400_Project_Group11/
 ├── experiments/       # Experiment runners
 ├── utils/             # Utilities (shared)
 ├── config/            # Configuration files
-├── TASK_ASSIGNMENT.md # ⭐ 任务分配 (必读!)
+├── TASK_ASSIGNMENT.md # ⭐ Task assignments (MUST READ!)
 └── requirements.txt   # Python dependencies
 ```
 
@@ -71,16 +71,16 @@ python experiments/analyze_results.py
 
 ## Development Workflow
 
-**完整流程请参考 [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md)**
+**Full process: See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md)**
 
-简要步骤：
-1. 阅读 `TASK_ASSIGNMENT.md` 了解你的任务
-2. 阅读 `docs/API_CONTRACT.md` 了解接口规范
-3. 从develop创建feature分支
-4. 在你负责的模块文件夹中编写代码
-5. 添加单元测试
-6. 提交PR到develop分支（不是main！）
-7. 等待code review后merge
+Quick steps:
+1. Read `TASK_ASSIGNMENT.md` to understand your tasks
+2. Read `docs/API_CONTRACT.md` for interface specifications
+3. Create feature branch from develop
+4. Write code in your assigned module folder
+5. Add unit tests
+6. Submit PR to develop branch (NOT main!)
+7. Wait for code review and merge
 
 ## Configuration
 
