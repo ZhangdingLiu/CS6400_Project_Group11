@@ -18,7 +18,7 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     Returns:
         float: Cosine similarity
     """
-    raise NotImplementedError
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
 def batch_cosine_similarity(query: np.ndarray, vectors: np.ndarray) -> np.ndarray:
@@ -32,7 +32,9 @@ def batch_cosine_similarity(query: np.ndarray, vectors: np.ndarray) -> np.ndarra
     Returns:
         np.ndarray: Shape (N,), similarity scores
     """
-    raise NotImplementedError
+    query_norm = query / (np.linalg.norm(query) + 1e-10)
+    vectors_norm = vectors / (np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10)
+    return np.dot(vectors_norm, query_norm)
 
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
@@ -46,4 +48,4 @@ def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
     Returns:
         float: Euclidean distance
     """
-    raise NotImplementedError
+    return np.linalg.norm(a - b)
