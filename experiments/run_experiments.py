@@ -1,235 +1,150 @@
-"""
-Main Experiment Runner
-
-Functionality: Run complete experiment pipeline
-"""
-
 import os
 import sys
 import time
+import json
 import numpy as np
 import pandas as pd
 
-# Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from evaluation.oracle import ExactSearchOracle
 from evaluation.evaluator import HybridSearchEvaluator
 from evaluation.metrics import compute_memory_usage
 from baselines.prefilter_bruteforce import PreFilterBruteForce
-
-# Try to import indexing modules (optional - may not be implemented yet)
-try:
-    from indexing.ivf_index import IVFPQIndex
-    from baselines.postfilter_ann import PostFilterANN
-    INDEXING_AVAILABLE = True
-except ImportError:
-    INDEXING_AVAILABLE = False
-    print("Note: Indexing module not available. Skipping PostFilter baseline.")
+from baselines.postfilter_ann import PostFilterANN
+from indexing.ivf_index import IVFPQIndex
+from indexing.metadata_signatures import MetadataSignatureBuilder
+from search.pruning import FilterAwarePruner
+from search.adaptive_deepening import AdaptiveSearchPlanner
+from search.search_engine import HybridSearchEngine
 
 
-def create_test_queries(embeddings: np.ndarray, metadata_df: pd.DataFrame, n_queries: int = 5):
-    """
-    Create simple test queries for evaluation
-
-    Args:
-        embeddings: Embedding vectors
-        metadata_df: Metadata DataFrame
-        n_queries: Number of test queries to create
-
-    Returns:
-        List of query dictionaries
-    """
-    queries = []
-    np.random.seed(42)
-
-    # Sample query indices
-    query_indices = np.random.choice(len(embeddings), size=n_queries, replace=False)
-
-    for idx in query_indices:
-        # Use actual embedding as query vector
-        query_vector = embeddings[idx].copy()
-
-        # Create a simple filter
-        # Example: category IN [1, 5], year RANGE [20, 80]
-        filter_dict = {
-            'category': {'op': 'IN', 'values': [1, 5]},
-            'year': {'op': 'RANGE', 'min': 20, 'max': 80}
-        }
-
-        queries.append({
-            'vector': query_vector,
-            'filter': filter_dict
-        })
-
+def load_queries(query_path):
+    with open(query_path, 'r') as f:
+        queries = json.load(f)
+    for q in queries:
+        q['vector'] = np.array(q['vector'], dtype=np.float32)
     return queries
 
 
+def build_index_and_signatures(embeddings, metadata):
+    d = embeddings.shape[1]
+    nlist = int(4 * np.sqrt(len(embeddings)))
+
+    print(f"Building IVF-PQ index (nlist={nlist})...")
+    start = time.time()
+    index = IVFPQIndex(d=d, nlist=nlist, m=64, nbits=8)
+    index.train(embeddings)
+    index.add(embeddings)
+    build_time = time.time() - start
+
+    print("Building metadata signatures...")
+    assignments = index.get_list_assignments(embeddings)
+    builder = MetadataSignatureBuilder(metadata, assignments)
+    raw_sigs = builder.build_all_signatures()
+
+    # Transform signature format for FilterAwarePruner
+    signatures = {}
+    if 'numeric' in raw_sigs:
+        signatures.update(raw_sigs['numeric'])
+    if 'categorical' in raw_sigs:
+        signatures.update(raw_sigs['categorical'])
+
+    return index, signatures, build_time
+
+
 def main():
-    """
-    Run complete experiment pipeline.
-
-    Steps:
-    1. Load data
-    2. Create test queries
-    3. Initialize oracle and baselines
-    4. Run evaluation
-    5. Save results
-    """
-    print("="*60)
-    print("CS6400 Hybrid Vector Search - Experiment Runner")
-    print("="*60)
-
-    # Step 1: Load data
-    print("\n[1/5] Loading data...")
     data_dir = "data_files"
+    index_dir = "index_files"
+    results_dir = "results"
+    os.makedirs(index_dir, exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
 
-    embeddings_path = os.path.join(data_dir, "embeddings.npy")
-    metadata_path = os.path.join(data_dir, "metadata.parquet")
+    print("="*60)
+    print("Hybrid Vector Search Experiments")
+    print("="*60)
 
-    if not os.path.exists(embeddings_path):
-        print(f"ERROR: Embeddings not found at {embeddings_path}")
-        print("Please run data generation first:")
-        print("  python scripts/build_data.py")
-        return
+    # Load data
+    print("\n[1/4] Loading data...")
+    embeddings = np.load(f"{data_dir}/embeddings.npy")
+    metadata = pd.read_parquet(f"{data_dir}/metadata.parquet")
+    queries = load_queries(f"{data_dir}/queries.json")
+    print(f"  Data: {len(embeddings)} vectors, {len(queries)} queries")
 
-    if not os.path.exists(metadata_path):
-        print(f"ERROR: Metadata not found at {metadata_path}")
-        print("Please run data generation first:")
-        print("  python scripts/build_data.py")
-        return
+    # Build index
+    print("\n[2/4] Building index and signatures...")
+    index, signatures, build_time = build_index_and_signatures(embeddings, metadata)
+    index.save(f"{index_dir}/index.faiss")
+    print(f"  Build time: {build_time:.2f}s")
 
-    embeddings = np.load(embeddings_path)
-    metadata = pd.read_parquet(metadata_path)
-
-    print(f"  Loaded {len(embeddings)} embeddings, dimension={embeddings.shape[1]}")
-    print(f"  Loaded {len(metadata)} metadata records")
-
-    # Step 2: Create test queries
-    print("\n[2/5] Creating test queries...")
-    queries = create_test_queries(embeddings, metadata, n_queries=5)
-    print(f"  Created {len(queries)} test queries")
-
-    # Step 3: Build index (if available) and initialize methods
-    print("\n[3/5] Building index and initializing methods...")
-
-    index = None
-    index_build_time = None
-
-    if INDEXING_AVAILABLE:
-        print("  Building IVF-PQ index...")
-        index_dir = "index_files"
-        os.makedirs(index_dir, exist_ok=True)
-
-        # Get index parameters from config or use defaults
-        d = embeddings.shape[1]
-        nlist = int(4 * np.sqrt(len(embeddings)))  # Approximately 4*sqrt(N)
-
-        # Build index with timing
-        start_time = time.time()
-        try:
-            index = IVFPQIndex(d=d, nlist=nlist, m=64, nbits=8)
-            index.train(embeddings)
-            index.add(embeddings)
-            index_build_time = time.time() - start_time
-
-            print(f"  Index built successfully in {index_build_time:.2f} seconds")
-
-            # Save index
-            index_path = os.path.join(index_dir, "index.faiss")
-            index.save(index_path)
-            print(f"  Index saved to: {index_path}")
-
-        except Exception as e:
-            print(f"  Warning: Failed to build index: {e}")
-            index = None
-            index_build_time = None
-    else:
-        print("  Skipping index build (indexing module not available)")
-
-    # Initialize evaluation methods
+    # Initialize methods
+    print("\n[3/4] Initializing methods...")
     oracle = ExactSearchOracle(embeddings, metadata)
     prefilter = PreFilterBruteForce(embeddings, metadata)
+    postfilter = PostFilterANN(index, metadata, fixed_nprobe=32)
 
-    methods_list = ['Oracle', 'PreFilter']
-
-    # Add PostFilter if index is available
-    postfilter = None
-    if index is not None:
-        try:
-            postfilter = PostFilterANN(index, metadata, fixed_nprobe=32)
-            methods_list.append('PostFilter')
-        except Exception as e:
-            print(f"  Warning: Failed to initialize PostFilter: {e}")
-
-    print(f"  Initialized methods: {', '.join(methods_list)}")
-
-    # Step 4: Run evaluation
-    print("\n[4/5] Running evaluation...")
-    evaluator = HybridSearchEvaluator(queries, oracle)
+    centroids = index.get_centroids()
+    pruner = FilterAwarePruner(signatures, centroids)
+    planner = AdaptiveSearchPlanner(
+        nlist=index.nlist,
+        nprobe_max=256,
+        growth_factor_nprobe=1.8,
+        growth_factor_k_prime=1.5
+    )
+    hybridsearch = HybridSearchEngine(index, pruner, planner, metadata)
 
     methods = {
         'Oracle': oracle,
-        'PreFilter': prefilter
+        'PreFilter': prefilter,
+        'PostFilter': postfilter,
+        'HybridSearch': hybridsearch
     }
 
-    if postfilter is not None:
-        methods['PostFilter'] = postfilter
+    # Run evaluation
+    print("\n[4/4] Running experiments...")
+    evaluator = HybridSearchEvaluator(queries, oracle)
 
+    # Experiment 1: Method comparison
+    print("  - Method comparison...")
     results = evaluator.compare_methods(methods, k_values=[10, 20])
+    results.to_csv(f"{results_dir}/comparison.csv", index=False)
 
-    # Step 5: Save results
-    print("\n[5/5] Saving results...")
-    results_dir = "results"
-    os.makedirs(results_dir, exist_ok=True)
+    # Experiment 2: Selectivity analysis
+    print("  - Selectivity analysis...")
+    selectivity_bins = [(0.01, 0.05), (0.05, 0.15), (0.15, 0.30), (0.30, 1.00)]
+    sel_results = []
 
-    output_path = os.path.join(results_dir, "comparison.csv")
-    results.to_csv(output_path, index=False)
+    for low, high in selectivity_bins:
+        bin_queries = [q for q in queries if low <= q.get('selectivity', 0) < high]
+        if not bin_queries:
+            continue
 
-    print(f"  Results saved to: {output_path}")
+        bin_eval = HybridSearchEvaluator(bin_queries, oracle)
+        bin_res = bin_eval.compare_methods(methods, k_values=[10, 20])
+        bin_res['selectivity_bin'] = f"{low}-{high}"
+        bin_res['n_queries'] = len(bin_queries)
+        sel_results.append(bin_res)
 
-    # Save index build time and memory usage if available
-    if index_build_time is not None or index is not None:
-        index_stats = {}
+    if sel_results:
+        pd.concat(sel_results, ignore_index=True).to_csv(
+            f"{results_dir}/selectivity_analysis.csv", index=False
+        )
 
-        if index_build_time is not None:
-            index_stats['index_build_time_seconds'] = index_build_time
+    # Experiment 3: Memory overhead
+    mem_stats = compute_memory_usage(index_dir)
+    mem_stats['index_build_time_seconds'] = build_time
+    pd.DataFrame([mem_stats]).to_csv(f"{results_dir}/index_stats.csv", index=False)
 
-        # Compute memory usage
-        try:
-            memory_stats = compute_memory_usage("index_files")
-            index_stats.update(memory_stats)
-        except Exception as e:
-            print(f"  Warning: Failed to compute memory usage: {e}")
-
-        if index_stats:
-            stats_path = os.path.join(results_dir, "index_stats.csv")
-            pd.DataFrame([index_stats]).to_csv(stats_path, index=False)
-            print(f"  Index statistics saved to: {stats_path}")
-
-    # Display results
+    # Print summary
     print("\n" + "="*60)
-    print("RESULTS SUMMARY")
+    print("RESULTS")
     print("="*60)
     print(results.to_string(index=False))
-
-    if index_build_time is not None:
-        print("\n" + "="*60)
-        print("INDEX BUILD TIME")
-        print("="*60)
-        print(f"  Build time: {index_build_time:.2f} seconds")
-
-        # Display memory usage if available
-        try:
-            mem_stats = compute_memory_usage("index_files")
-            print(f"  Index size: {mem_stats['index_size_mb']:.2f} MB")
-            print(f"  Signature size: {mem_stats['signature_size_mb']:.2f} MB")
-            print(f"  Total size: {mem_stats['total_size_mb']:.2f} MB")
-        except:
-            pass
-
+    print(f"\nIndex build time: {build_time:.2f}s")
+    print(f"Index size: {mem_stats['index_size_mb']:.2f} MB")
+    print(f"Signature size: {mem_stats['signature_size_mb']:.2f} MB")
     print("\n" + "="*60)
-    print("Evaluation complete!")
+    print("Experiments complete!")
 
 
 if __name__ == '__main__':

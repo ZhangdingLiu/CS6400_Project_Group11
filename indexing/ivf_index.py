@@ -95,8 +95,8 @@ class IVFPQIndex:
             raise ValueError(f"embeddings must be (N, {self.d}).")
         X = self._unit_float32(embeddings)
         self._ensure_trained()
-        _, I = self.quantizer.assign(X)
-        return I.astype(np.int32, copy=False)
+        _, I = self.quantizer.search(X, 1)
+        return I[:, 0].astype(np.int32, copy=False)
 
     def get_centroids(self) -> np.ndarray:
         """
@@ -106,10 +106,10 @@ class IVFPQIndex:
             np.ndarray: Shape (nlist, d), centroid vectors
         """
         self._ensure_trained()
-        xb = self.quantizer.xb
-        arr = faiss.vector_to_array(xb)
-        C = arr.reshape(self.nlist, self.d).astype(np.float32, copy=False)
-        return C
+        centroids = np.zeros((self.nlist, self.d), dtype=np.float32)
+        for i in range(self.nlist):
+            centroids[i] = self.quantizer.reconstruct(i)
+        return centroids
 
     def search(self, query: np.ndarray, k: int, nprobe: int = None) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -179,11 +179,8 @@ class IVFPQIndex:
                 c = C[int(lid)]
                 ldis[0, j] = np.float32(np.sum((c - q) ** 2))
 
-        params = faiss.SearchParametersIVF()
-        params.nprobe = len(list_ids)
-        distances, ids = self.index.search_preassigned(
-            xq, k, lids, ldis, params  # type: ignore
-        )
+        self.index.nprobe = len(list_ids)
+        distances, ids = self.index.search_preassigned(xq, k, lids, ldis)
         return distances[0], ids[0]
 
     def save(self, path: str):
