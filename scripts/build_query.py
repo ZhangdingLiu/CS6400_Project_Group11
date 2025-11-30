@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from data.query_generator import generate_queries
 
 import json
