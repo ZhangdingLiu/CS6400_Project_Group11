@@ -37,43 +37,165 @@ Supported operators:
 
 #### `data/loader.py`
 ```python
-def load_embeddings(dataset_name: str, n_samples: int) -> tuple:
+class WikipediaDataLoader:
     """
-    Load data from HuggingFace
+    Download & parse Wikipedia embedding dataset from HuggingFace.
 
-    Returns:
-        embeddings: np.ndarray (N, d), float32, L2-normalized
-        texts: list[str], length N
+    Supported embedding_method values:
+        - "OpenAI"    -> wiki_openai.ndjson.gz, column "text-embedding-ada-002" (d=1536)
+        - "MiniLM"    -> wiki_minilm.ndjson.gz, column "all-MiniLM-L6-v2"      (d=384)
+        - "GTE-small" -> wiki_gte.ndjson.gz,    column "embedding"             (d=384)
     """
+
+    def __init__(self, embedding_method: str = "OpenAI", text_field: str = "body"):
+        """
+        Args:
+            embedding_method: Which embedding variant to use.
+            text_field: Preferred text column name; will fall back to ['body', 'text', 'content'].
+        """
+
+    def load(self, n_samples: Optional[int] = None) -> tuple[list[str], np.memmap]:
+        """
+        Download the NDJSON file from HuggingFace, stream and parse lines,
+        and return texts and embeddings.
+
+        Args:
+            n_samples:
+                Maximum number of samples to load. If None, load up to the
+                full dataset size (224,482 rows for the full Wikipedia dataset).
+
+        Returns:
+            texts:
+                list[str] of length N' (N' <= n_samples or dataset size).
+            embeddings:
+                np.memmap of shape (N', d), dtype=float32.
+                These are the **raw, unnormalized** embedding vectors.
+        """
 ```
 
 #### `data/preprocessor.py`
 ```python
-def generate_metadata(n_samples: int, config: dict) -> pd.DataFrame:
+class MetadataGenerator:
     """
-    Generate synthetic metadata
+    Generate synthetic metadata attributes for each paragraph.
+    Uses a fixed RNG seed for reproducibility.
+    """
+
+    def build_metadata_table(self, n_samples: int, texts: list[str]) -> pd.DataFrame:
+        """
+        Build a complete metadata DataFrame aligned with the given texts.
+
+        Args:
+            n_samples: Number of samples (must equal len(texts)).
+            texts: List of paragraph texts.
+
+        Returns:
+            pd.DataFrame with N rows and 5 columns:
+                - category      (int32, [1, 30])
+                - importance    (int32, [1, 100])
+                - year          (int32, [0, 100])
+                - paragraph_len (int32)
+                - region        (string, {NA, EU, APAC, LATAM, AFR})
+        """
+```
+
+#### `data/__init__.py`
+```python
+from .loader import WikipediaDataLoader
+from .preprocessor import MetadataGenerator
+
+def build_data_files(
+    loader: WikipediaDataLoader,
+    out_dir: str = "data_files",
+    n_samples: Optional[int] = None,
+) -> tuple[str, str]:
+    """
+    Materialize embeddings and metadata on disk.
+
+    Steps:
+        1) Calls `loader.load(n_samples)` to obtain:
+               texts: list[str]
+               X: np.memmap (N, d), float32, unnormalized embeddings
+        2) Writes embeddings to {out_dir}/embeddings.npy using an on-disk memmap.
+        3) Uses MetadataGenerator(seed=42) to build metadata and save to
+           {out_dir}/metadata.parquet.
+
+    Args:
+        loader: Configured WikipediaDataLoader instance.
+        out_dir: Output directory (created if missing).
+        n_samples: Optional cap on number of rows to load.
+
+    Creates:
+        - {out_dir}/embeddings.npy    # float32, shape (N, d), unnormalized
+        - {out_dir}/metadata.parquet  # metadata DataFrame with 5 columns
 
     Returns:
-        DataFrame with 5 columns (category, importance, year, paragraph_len, region)
+        (embeddings_path, metadata_path)
     """
+
 ```
+
+#### Typical Usage to download embedding in .npy and generate metadata in .parquet (in `scripts/build_data.py`)
+```python
+from data import WikipediaDataLoader, build_data_files
+def main():
+    # embedding_method in {"OpenAI", "MiniLM", "GTE-small"}
+    loader = WikipediaDataLoader(embedding_method="OpenAI", text_field="body")
+    emb_path, meta_path = build_data_files(loader, out_dir="data_files")
+    print("Saved:", emb_path, "and", meta_path)
+
+if __name__ == "__main__":
+    main()
+```
+
 
 #### `data/query_generator.py`
 ```python
-def generate_queries(embeddings, metadata, n_queries: int,
-                     selectivity_ranges: list) -> list[dict]:
+def generate_queries(
+    embeddings: np.ndarray,
+    metadata: pd.DataFrame,
+    n_queries: int,
+    selectivity_ranges: list[tuple[float, float]],
+    k_value: int = 10,
+) -> list[dict]:
     """
-    Generate query workload
+    Generate a query workload with explicit per-query selectivity ranges.
+
+    Args:
+        embeddings:
+            np.ndarray (N, d), float32. Item embeddings.
+        metadata:
+            pd.DataFrame with N rows, using the standard metadata schema.
+        n_queries:
+            Total number of queries to generate.
+        selectivity_ranges:
+            List of (lo, hi) tuples with 0.0 <= lo <= hi <= 1.0.
+            Query i will target the range selectivity_ranges[i % len(selectivity_ranges)].
+        k_value:
+            The top-k value to be used by downstream search (stored per query).
+
+    Generation behavior:
+        - For each query i:
+            * Choose (lo, hi) = selectivity_ranges[i % len(selectivity_ranges)].
+            * Try up to a fixed number of random filters (and query vectors)
+              using QueryWorkloadGenerator.generate_filter().
+            * Accept the first filter whose empirical selectivity lies in [lo, hi].
+            * If no exact hit is found within the budget, use the closest candidate
+              in terms of selectivity distance to [lo, hi].
 
     Returns:
-        List of query dicts:
+        list[dict], where each dict has the form:
         {
-            'vector': np.ndarray (d,),
-            'filter': filter_dict,
-            'selectivity': float
+            "vector": np.ndarray of shape (d,),   # query embedding (L2-normalized)
+            "filter": filter_dict,               # structured filter
+            "selectivity": float,                # empirical fraction in [0, 1]
+            "k": int                             # requested top-k
         }
     """
 ```
+#### `scripts/build_queries.py`
+A simple script to generate query workload from the data files:
+
 
 ---
 
