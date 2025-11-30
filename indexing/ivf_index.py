@@ -111,6 +111,35 @@ class IVFPQIndex:
         C = arr.reshape(self.nlist, self.d).astype(np.float32, copy=False)
         return C
 
+    def search(self, query: np.ndarray, k: int, nprobe: int = None) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Standard ANN search.
+
+        Args:
+            query: Shape (d,), query vector
+            k: Number of results to return
+            nprobe: Number of IVF lists to probe (default: nlist//10)
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: (distances, ids)
+        """
+        if query.ndim != 1 or query.shape[0] != self.d:
+            raise ValueError(f"query must be ({self.d},).")
+        if k <= 0:
+            raise ValueError("k must be positive.")
+        self._ensure_trained()
+
+        q = query.astype(np.float32, copy=False)
+        q /= (np.linalg.norm(q) + 1e-12)
+        xq = q.reshape(1, -1)
+
+        if nprobe is None:
+            nprobe = max(1, self.nlist // 10)
+
+        self.index.nprobe = nprobe
+        distances, ids = self.index.search(xq, k)
+        return distances[0], ids[0]
+
     def search_preassigned(
         self, query: np.ndarray, list_ids: List[int], k: int
     ) -> Tuple[np.ndarray, np.ndarray]:
