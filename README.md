@@ -4,14 +4,14 @@ Efficient vector search combining semantic similarity with metadata filtering.
 
 ## Team Members
 
-- **Zhangding Liu** - Baselines & Evaluation
+- **Zhangding Liu** - Project Integration, Experiment Framework & Evaluation
 - **Yao-Ting Huang** - Data Module
 - **Zaowei Dai** - Indexing Module
 - **Yichang Xu** - Search Module
 
 ## Code-to-Report Mapping
 
-This section maps the main components described in our report to their code implementations. All files are NEW (written from scratch for this project).
+This section maps the main components described in our report to their code implementations.
 
 ### Data Generation & Preprocessing
 - `data/loader.py`: Wikipedia embedding dataset loader (OpenAI ada-002, d=1536)
