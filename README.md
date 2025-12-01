@@ -63,11 +63,36 @@ CS6400_Project_Group11/
 
 ## Running Experiments
 
+### Quick Start (100k dataset)
 ```bash
-# After all modules are implemented:
+# Step 1: Generate dataset (default: 100k samples, ~586MB)
+python scripts/build_data.py
+
+# Step 2: Generate queries (500 queries)
+python scripts/build_query.py
+
+# Step 3: Run experiments (~8-15 min)
 python experiments/run_experiments.py
+
+# Step 4: Generate visualizations
 python experiments/analyze_results.py
 ```
+
+### Custom Dataset Size
+```bash
+# 10k samples (quick test)
+python scripts/build_data.py --n-samples 10000
+
+# 50k samples
+python scripts/build_data.py --n-samples 50000
+
+# Then run steps 2-4 as above
+```
+
+### Output Files
+- **Data**: `data_files/embeddings.npy`, `metadata.parquet`, `queries.json`
+- **Results**: `results/comparison.csv`, `selectivity_analysis.csv`, `index_stats.csv`
+- **Figures**: `results/figures/exp1_*.png`, `exp2_*.png` (7 individual plots for LaTeX)
 
 ## Development Workflow
 
