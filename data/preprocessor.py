@@ -20,11 +20,6 @@ class MetadataGenerator:
     def generate_category(self, n_samples: int) -> np.ndarray:
         """
         Generate category attribute with Zipf distribution with s = 1.2 and truncated to 30
-        Args:
-            n_samples: Number of samples
-
-        Returns:
-            np.ndarray: Shape (n_samples,), dtype=int32, range [1, 30]
         """
         max_cat = 30 
         zipf_s = 1.2
@@ -41,12 +36,6 @@ class MetadataGenerator:
     def generate_importance(self, n_samples: int) -> np.ndarray:
         """
         Generate importance attribute with normal distribution.
-
-        Args:
-            n_samples: Number of samples
-
-        Returns:
-            np.ndarray: Shape (n_samples,), dtype=int32, range [1, 100]
         """
         vals = self.rng.normal(loc=50, scale=15, size=n_samples)
         return self._clip_int(np.round(vals), 1, 100)
@@ -54,11 +43,6 @@ class MetadataGenerator:
     def generate_year(self, n_samples: int) -> np.ndarray:
         """
         Generate year attribute with mixture distribution (30% low, 60% mid, 10% high). 
-        Args:
-            n_samples: Number of samples
-
-        Returns:
-            np.ndarray: Shape (n_samples,), dtype=int32, range [0, 100]
         """
         comps = self.rng.choice([0, 1, 2], size=n_samples, p=[0.3, 0.6, 0.1])
         low = (100 * self.rng.beta(a=2.0, b=8.0, size=n_samples)).astype(np.float32)
@@ -69,13 +53,7 @@ class MetadataGenerator:
 
     def generate_region(self, n_samples: int) -> np.ndarray:
         """
-        Generate region attribute.
-
-        Args:
-            n_samples: Number of samples
-
-        Returns:
-            np.ndarray: Shape (n_samples,), dtype=object, values from {NA, EU, APAC, LATAM, AFR}
+        Generate region from {NA, EU, APAC, LATAM, AFR}.
         """
         regions = np.array(["NA", "EU", "APAC", "LATAM", "AFR"], dtype=object)
         probs = np.array([0.4, 0.25, 0.2, 0.1, 0.05], dtype=np.float64)
@@ -83,20 +61,14 @@ class MetadataGenerator:
 
     def compute_paragraph_len(self, texts: List[str]) -> np.ndarray:
         """
-        Compute token count for each paragraph.
-
-        Args:
-            texts: List of paragraph texts
-
-        Returns:
-            np.ndarray: Shape (len(texts),), dtype=int32, token counts
+        Compute token count for each text.
         """
         return np.array([len(t.split()) for t in texts], dtype=np.int32)
 
     def build_metadata_table(self, n_samples: int, texts: List[str]) -> pd.DataFrame:
         """
-        Build complete metadata DataFrame.
-
+        Build synthetic metadata DataFrame.
+        
         Args:
             n_samples: Number of samples
             texts: List of paragraph texts
