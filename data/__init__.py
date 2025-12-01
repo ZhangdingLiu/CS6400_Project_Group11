@@ -7,7 +7,6 @@ from typing import Optional, Tuple
 import numpy as np
 from numpy.lib.format import open_memmap  # for writing .npy without huge RAM use
 
-# Local imports (relative)
 from .loader import WikipediaDataLoader
 from .preprocessor import MetadataGenerator
 
@@ -21,33 +20,32 @@ def build_data_files(
   ) -> tuple[str, str]:
     """
     Creates:
-        - {out_dir}/embeddings.npy     (L2-normalized float32)
-        - {out_dir}/metadata.parquet   (5 columns)
+        - {out_dir}/embeddings.npy     
+        - {out_dir}/metadata.parquet   
     Returns:
         (embeddings_path, metadata_path)
     """
     os.makedirs(out_dir, exist_ok=True)
-    texts, X = loader.load(n_samples=n_samples)  # X is memmap (N,d), unnormalized
+    texts, X = loader.load(n_samples=n_samples)  
     N, d = X.shape
 
-    # 1) Normalize row-wise into a .npy file without loading all into RAM
     emb_path = os.path.join(out_dir, "embeddings.npy")
     # create an on-disk .npy we can write into
     Y = open_memmap(emb_path, mode="w+", dtype="float32", shape=(N, d))
     np.copyto(Y, X, casting="no")
 
     # ensure written
-    del Y  # closes memmap
-    X._mmap.close()  # close tmp memmap file
+    del Y 
+    X._mmap.close()  
     try:
         os.remove("tmp_embeddings.dat")
     except OSError:
         pass
 
-    # 2) Build & save metadata parquet
+    # Build and save metadata parquet
     meta = MetadataGenerator(seed=42).build_metadata_table(N, texts)
     meta_path = os.path.join(out_dir, "metadata.parquet")
-    # requires pyarrow or fastparquet installed via requirements.txt
+    # requires pyarrow or fastparquet installed 
     meta.to_parquet(meta_path, index=False)
 
     return emb_path, meta_path
