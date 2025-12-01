@@ -9,6 +9,46 @@ Efficient vector search combining semantic similarity with metadata filtering.
 - **Zaowei Dai** - Indexing Module
 - **Yichang Xu** - Search Module
 
+## Code-to-Report Mapping
+
+This section maps the main components described in our report to their code implementations. All files are NEW (written from scratch for this project).
+
+### Data Generation & Preprocessing
+- `data/loader.py`: Wikipedia embedding dataset loader (OpenAI ada-002, d=1536)
+- `data/preprocessor.py`: Synthetic metadata generation (category, importance, year, region)
+- `data/query_generator.py`: Query workload generation with controllable selectivity
+- `scripts/build_data.py`: Dataset generation script (100k samples default)
+- `scripts/build_query.py`: Query generation script (500 queries)
+
+### IVF-PQ Indexing with Metadata Signatures
+- `indexing/ivf_index.py`: FAISS IVF-PQ index wrapper with selective list search
+- `indexing/metadata_signatures.py`: Per-list metadata signature builder
+  - Categorical signatures (bitsets)
+  - Numeric signatures (min/max ranges + bucket masks)
+- `indexing/signature_storage.py`: Signature persistence using Parquet
+
+### Filter-Aware Hybrid Search
+- `search/pruning.py`: Filter-aware IVF list pruning using metadata signatures
+- `search/adaptive_deepening.py`: Adaptive nprobe and k' parameter adjustment
+- `search/search_engine.py`: Main hybrid search coordinator
+
+### Baseline Implementations
+- `baselines/prefilter_bruteforce.py`: Pre-filter baseline (filter → exact search)
+- `baselines/postfilter_ann.py`: Post-filter baseline (ANN → filter → retry logic)
+
+### Evaluation & Experiments
+- `evaluation/oracle.py`: Exact filtered search for ground truth
+- `evaluation/metrics.py`: Recall@k, latency (P50/P95/P99), memory usage
+- `evaluation/evaluator.py`: Experiment framework with selectivity binning
+- `experiments/run_experiments.py`: Main experiment runner (k=[10,20,50])
+- `experiments/analyze_results.py`: Result visualization (7 individual plots for LaTeX)
+
+### Generated Results
+- `results/comparison.csv`: Method comparison across k=[10,20,50]
+- `results/selectivity_analysis.csv`: Performance by selectivity bins
+- `results/index_stats.csv`: Index build time and memory overhead
+- `results/figures/exp1_*.png`: Method comparison plots (4 files)
+- `results/figures/exp2_*.png`: Selectivity analysis plots (3 files)
 
 ## Quick Start
 
