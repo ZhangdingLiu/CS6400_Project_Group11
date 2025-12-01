@@ -7,7 +7,7 @@ Efficient vector search combining semantic similarity with metadata filtering.
 - **Zhangding Liu** - Project Integration, Experiment Framework, Baselines, Evaluation, and Readme
 - **Yao-Ting Huang** - Data Module
 - **Zaowei Dai** - Indexing Module
-- **Yichang Xu** - Search Module
+- **Yichang Xu** - Search Module and Experimental Results Analysis
 
 ## Code-to-Report Mapping
 
@@ -33,15 +33,19 @@ This section maps the main components described in our report to their code impl
 - `search/search_engine.py`: Main hybrid search coordinator
 
 ### Baseline Implementations
+Implemented standard baseline methods from IR literature, adapted to our project's filter format and data structures:
 - `baselines/prefilter_bruteforce.py`: Pre-filter baseline (filter → exact search)
-- `baselines/postfilter_ann.py`: Post-filter baseline (ANN → filter → retry logic)
+- `baselines/postfilter_ann.py`: Post-filter baseline with iterative retry logic (ANN → filter → retry)
+- References: Standard pre-filtering and post-filtering approaches in filtered vector search
 
 ### Evaluation & Experiments
-- `evaluation/oracle.py`: Exact filtered search for ground truth
-- `evaluation/metrics.py`: Recall@k, latency (P50/P95/P99), memory usage
-- `evaluation/evaluator.py`: Experiment framework with selectivity binning
-- `experiments/run_experiments.py`: Main experiment runner (k=[10,20,50])
-- `experiments/analyze_results.py`: Result visualization (7 individual plots for LaTeX)
+Built evaluation framework implementing standard IR metrics, integrated with our hybrid search system:
+- `evaluation/oracle.py`: Exact filtered search for ground truth computation
+- `evaluation/metrics.py`: Recall@k (set-based), latency statistics (percentiles), memory profiling
+- `evaluation/evaluator.py`: Experiment framework with selectivity-based binning
+- `experiments/run_experiments.py`: Comparative experiment runner across k=[10,20,50]
+- `experiments/analyze_results.py`: Visualization pipeline (7 individual plots for LaTeX)
+- References: Standard Recall@k definition, NumPy statistical functions, FAISS documentation
 
 ### Generated Results
 - `results/comparison.csv`: Method comparison across k=[10,20,50]
