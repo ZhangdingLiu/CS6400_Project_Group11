@@ -106,7 +106,7 @@ def main():
 
     # Experiment 1: Method comparison
     print("  - Method comparison...")
-    results = evaluator.compare_methods(methods, k_values=[10, 20])
+    results = evaluator.compare_methods(methods, k_values=[10, 20, 50])
     results.to_csv(f"{results_dir}/comparison.csv", index=False)
 
     # Experiment 2: Selectivity analysis
@@ -120,7 +120,7 @@ def main():
             continue
 
         bin_eval = HybridSearchEvaluator(bin_queries, oracle)
-        bin_res = bin_eval.compare_methods(methods, k_values=[10, 20])
+        bin_res = bin_eval.compare_methods(methods, k_values=[10, 20, 50])
         bin_res['selectivity_bin'] = f"{low}-{high}"
         bin_res['n_queries'] = len(bin_queries)
         sel_results.append(bin_res)

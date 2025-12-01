@@ -13,8 +13,8 @@ def main():
     parser.add_argument(
         '--n-samples',
         type=int,
-        default=10000,
-        help='Number of samples to generate (default: 10000, use 0 for all 224k)'
+        default=100000,
+        help='Number of samples to generate (default: 100000, use 0 for all 224k)'
     )
     parser.add_argument(
         '--embedding-method',

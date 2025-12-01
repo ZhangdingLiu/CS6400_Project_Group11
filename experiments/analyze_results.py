@@ -4,242 +4,329 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_experiment1_method_comparison(comparison_df, output_dir='results/figures'):
-    """Experiment 1: Overall method comparison"""
+def plot_exp1_recall(comparison_df, output_dir='results/figures'):
+    """Experiment 1: Recall@k by Method"""
     os.makedirs(output_dir, exist_ok=True)
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    colors = ['#3498db', '#e74c3c', '#f39c12']
+    k_values = [10, 20, 50]
 
-    k10 = comparison_df[comparison_df['k'] == 10].set_index('method')
-    k20 = comparison_df[comparison_df['k'] == 20].set_index('method')
+    # Prepare data
+    data = {}
+    for k in k_values:
+        data[k] = []
+        for method in methods:
+            row = comparison_df[(comparison_df['method'] == method) & (comparison_df['k'] == k)]
+            if len(row) > 0:
+                data[k].append(row[f'avg_recall@{k}'].values[0])
+            else:
+                data[k].append(0)
 
-    colors = ['#2ecc71', '#3498db', '#e74c3c', '#f39c12']
+    # Plot
+    x = np.arange(len(methods))
+    width = 0.25
 
-    # Recall@10
-    k10['avg_recall@10'].plot(kind='bar', ax=axes[0,0], color=colors)
-    axes[0,0].set_title('Recall@10 by Method', fontsize=12, fontweight='bold')
-    axes[0,0].set_ylabel('Recall@10')
-    axes[0,0].set_ylim([0, 1.1])
-    axes[0,0].grid(axis='y', alpha=0.3)
-    axes[0,0].set_xlabel('')
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for i, k in enumerate(k_values):
+        ax.bar(x + i*width, data[k], width, label=f'k={k}', color=colors[i], alpha=0.8)
 
-    # Recall@20
-    k20['avg_recall@20'].plot(kind='bar', ax=axes[0,1], color=colors)
-    axes[0,1].set_title('Recall@20 by Method', fontsize=12, fontweight='bold')
-    axes[0,1].set_ylabel('Recall@20')
-    axes[0,1].set_ylim([0, 1.1])
-    axes[0,1].grid(axis='y', alpha=0.3)
-    axes[0,1].set_xlabel('')
-
-    # P50 Latency
-    latency_k10 = k10[['p50_latency']].rename(columns={'p50_latency': 'k=10'})
-    latency_k20 = k20[['p50_latency']].rename(columns={'p50_latency': 'k=20'})
-    latency_both = pd.concat([latency_k10, latency_k20], axis=1)
-    latency_both.plot(kind='bar', ax=axes[1,0], color=['#3498db', '#e74c3c'])
-    axes[1,0].set_title('P50 Latency by Method', fontsize=12, fontweight='bold')
-    axes[1,0].set_ylabel('Latency (ms)')
-    axes[1,0].grid(axis='y', alpha=0.3)
-    axes[1,0].set_xlabel('')
-    axes[1,0].legend()
-
-    # P95 Latency
-    p95_k10 = k10[['p95_latency']].rename(columns={'p95_latency': 'k=10'})
-    p95_k20 = k20[['p95_latency']].rename(columns={'p95_latency': 'k=20'})
-    p95_both = pd.concat([p95_k10, p95_k20], axis=1)
-    p95_both.plot(kind='bar', ax=axes[1,1], color=['#3498db', '#e74c3c'])
-    axes[1,1].set_title('P95 Latency by Method', fontsize=12, fontweight='bold')
-    axes[1,1].set_ylabel('Latency (ms)')
-    axes[1,1].grid(axis='y', alpha=0.3)
-    axes[1,1].set_xlabel('')
-    axes[1,1].legend()
+    ax.set_xlabel('Method', fontsize=11)
+    ax.set_ylabel('Recall@k', fontsize=11)
+    ax.set_title('Recall@k by Method', fontsize=12, fontweight='bold')
+    ax.set_xticks(x + width)
+    ax.set_xticklabels(methods)
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+    ax.set_ylim([0, 1.1])
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/exp1_method_comparison.png', dpi=150, bbox_inches='tight')
-    print(f'Saved: {output_dir}/exp1_method_comparison.png')
+    plt.savefig(f'{output_dir}/exp1_recall_by_method.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp1_recall_by_method.png')
     plt.close()
 
 
-def plot_experiment2_selectivity_analysis(selectivity_df, output_dir='results/figures'):
-    """Experiment 2: Performance by selectivity (filter-aware value)"""
+def plot_exp1_p50_latency(comparison_df, output_dir='results/figures'):
+    """Experiment 1: P50 Latency by Method"""
     os.makedirs(output_dir, exist_ok=True)
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    colors = ['#3498db', '#e74c3c', '#f39c12']
+    k_values = [10, 20, 50]
 
-    df_k10 = selectivity_df[selectivity_df['k'] == 10]
-    df_k20 = selectivity_df[selectivity_df['k'] == 20]
+    # Prepare data
+    data = {}
+    for k in k_values:
+        data[k] = []
+        for method in methods:
+            row = comparison_df[(comparison_df['method'] == method) & (comparison_df['k'] == k)]
+            if len(row) > 0:
+                data[k].append(row['p50_latency'].values[0])
+            else:
+                data[k].append(0)
+
+    # Plot
+    x = np.arange(len(methods))
+    width = 0.25
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for i, k in enumerate(k_values):
+        ax.bar(x + i*width, data[k], width, label=f'k={k}', color=colors[i], alpha=0.8)
+
+    ax.set_xlabel('Method', fontsize=11)
+    ax.set_ylabel('P50 Latency (ms)', fontsize=11)
+    ax.set_title('P50 Latency by Method', fontsize=12, fontweight='bold')
+    ax.set_xticks(x + width)
+    ax.set_xticklabels(methods)
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/exp1_p50_latency_by_method.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp1_p50_latency_by_method.png')
+    plt.close()
+
+
+def plot_exp1_p95_latency(comparison_df, output_dir='results/figures'):
+    """Experiment 1: P95 Latency by Method"""
+    os.makedirs(output_dir, exist_ok=True)
+
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    colors = ['#3498db', '#e74c3c', '#f39c12']
+    k_values = [10, 20, 50]
+
+    # Prepare data
+    data = {}
+    for k in k_values:
+        data[k] = []
+        for method in methods:
+            row = comparison_df[(comparison_df['method'] == method) & (comparison_df['k'] == k)]
+            if len(row) > 0:
+                data[k].append(row['p95_latency'].values[0])
+            else:
+                data[k].append(0)
+
+    # Plot
+    x = np.arange(len(methods))
+    width = 0.25
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for i, k in enumerate(k_values):
+        ax.bar(x + i*width, data[k], width, label=f'k={k}', color=colors[i], alpha=0.8)
+
+    ax.set_xlabel('Method', fontsize=11)
+    ax.set_ylabel('P95 Latency (ms)', fontsize=11)
+    ax.set_title('P95 Latency by Method', fontsize=12, fontweight='bold')
+    ax.set_xticks(x + width)
+    ax.set_xticklabels(methods)
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/exp1_p95_latency_by_method.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp1_p95_latency_by_method.png')
+    plt.close()
+
+
+def plot_exp1_mean_latency(comparison_df, output_dir='results/figures'):
+    """Experiment 1: Mean Latency by Method"""
+    os.makedirs(output_dir, exist_ok=True)
+
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    colors = ['#3498db', '#e74c3c', '#f39c12']
+    k_values = [10, 20, 50]
+
+    # Prepare data
+    data = {}
+    for k in k_values:
+        data[k] = []
+        for method in methods:
+            row = comparison_df[(comparison_df['method'] == method) & (comparison_df['k'] == k)]
+            if len(row) > 0:
+                data[k].append(row['mean_latency'].values[0])
+            else:
+                data[k].append(0)
+
+    # Plot
+    x = np.arange(len(methods))
+    width = 0.25
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for i, k in enumerate(k_values):
+        ax.bar(x + i*width, data[k], width, label=f'k={k}', color=colors[i], alpha=0.8)
+
+    ax.set_xlabel('Method', fontsize=11)
+    ax.set_ylabel('Mean Latency (ms)', fontsize=11)
+    ax.set_title('Mean Latency by Method', fontsize=12, fontweight='bold')
+    ax.set_xticks(x + width)
+    ax.set_xticklabels(methods)
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/exp1_mean_latency_by_method.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp1_mean_latency_by_method.png')
+    plt.close()
+
+
+def plot_exp2_recall_vs_selectivity(selectivity_df, output_dir='results/figures'):
+    """Experiment 2: Recall@20 vs Selectivity"""
+    os.makedirs(output_dir, exist_ok=True)
+
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    colors_map = {'PreFilter': '#3498db', 'PostFilter': '#e74c3c', 'HybridSearch': '#f39c12'}
 
     bin_order = ['0.01-0.05', '0.05-0.15', '0.15-0.3', '0.3-1.0']
     bin_labels = ['Very Selective\n(1-5%)', 'Selective\n(5-15%)',
                   'Medium\n(15-30%)', 'High\n(>30%)']
 
-    methods = ['Oracle', 'PreFilter', 'PostFilter', 'HybridSearch']
-    colors_map = {'Oracle': '#2ecc71', 'PreFilter': '#3498db',
-                  'PostFilter': '#e74c3c', 'HybridSearch': '#f39c12'}
+    # Use only k=20
+    df_k20 = selectivity_df[selectivity_df['k'] == 20]
 
-    # Recall@10 vs Selectivity
-    for method in methods:
-        data = df_k10[df_k10['method'] == method]
-        recalls = [data[data['selectivity_bin'] == b]['avg_recall@10'].values[0]
-                  if len(data[data['selectivity_bin'] == b]) > 0 else np.nan
-                  for b in bin_order]
-        axes[0,0].plot(range(len(bin_order)), recalls, marker='o',
-                      label=method, linewidth=2.5, markersize=8,
-                      color=colors_map[method])
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    axes[0,0].set_xticks(range(len(bin_order)))
-    axes[0,0].set_xticklabels(bin_labels, fontsize=9)
-    axes[0,0].set_ylabel('Recall@10', fontsize=11)
-    axes[0,0].set_title('Recall@10 vs Selectivity', fontsize=12, fontweight='bold')
-    axes[0,0].legend(loc='lower right')
-    axes[0,0].grid(alpha=0.3)
-    axes[0,0].set_ylim([0, 1.1])
-
-    # Recall@20 vs Selectivity
     for method in methods:
         data = df_k20[df_k20['method'] == method]
-        recalls = [data[data['selectivity_bin'] == b]['avg_recall@20'].values[0]
-                  if len(data[data['selectivity_bin'] == b]) > 0 else np.nan
-                  for b in bin_order]
-        axes[0,1].plot(range(len(bin_order)), recalls, marker='o',
-                      label=method, linewidth=2.5, markersize=8,
-                      color=colors_map[method])
+        recalls = []
+        for b in bin_order:
+            matching = data[data['selectivity_bin'] == b]
+            if len(matching) > 0:
+                recalls.append(matching['avg_recall@20'].values[0])
+            else:
+                recalls.append(np.nan)
 
-    axes[0,1].set_xticks(range(len(bin_order)))
-    axes[0,1].set_xticklabels(bin_labels, fontsize=9)
-    axes[0,1].set_ylabel('Recall@20', fontsize=11)
-    axes[0,1].set_title('Recall@20 vs Selectivity', fontsize=12, fontweight='bold')
-    axes[0,1].legend(loc='lower right')
-    axes[0,1].grid(alpha=0.3)
-    axes[0,1].set_ylim([0, 1.1])
+        ax.plot(range(len(bin_order)), recalls, marker='o',
+                label=method, linewidth=2.5, markersize=8,
+                color=colors_map[method])
 
-    # P50 Latency vs Selectivity
-    for method in methods:
-        data = df_k10[df_k10['method'] == method]
-        latencies = [data[data['selectivity_bin'] == b]['p50_latency'].values[0]
-                    if len(data[data['selectivity_bin'] == b]) > 0 else np.nan
-                    for b in bin_order]
-        axes[1,0].plot(range(len(bin_order)), latencies, marker='o',
-                      label=method, linewidth=2.5, markersize=8,
-                      color=colors_map[method])
-
-    axes[1,0].set_xticks(range(len(bin_order)))
-    axes[1,0].set_xticklabels(bin_labels, fontsize=9)
-    axes[1,0].set_ylabel('P50 Latency (ms)', fontsize=11)
-    axes[1,0].set_title('P50 Latency vs Selectivity (k=10)', fontsize=12, fontweight='bold')
-    axes[1,0].legend()
-    axes[1,0].grid(alpha=0.3)
-
-    # Number of queries per bin
-    bin_counts = df_k10.groupby('selectivity_bin')['n_queries'].first()
-    bin_counts = [bin_counts[b] if b in bin_counts.index else 0 for b in bin_order]
-
-    axes[1,1].bar(range(len(bin_order)), bin_counts, color='#95a5a6', alpha=0.7)
-    axes[1,1].set_xticks(range(len(bin_order)))
-    axes[1,1].set_xticklabels(bin_labels, fontsize=9)
-    axes[1,1].set_ylabel('Number of Queries', fontsize=11)
-    axes[1,1].set_title('Query Distribution by Selectivity', fontsize=12, fontweight='bold')
-    axes[1,1].grid(axis='y', alpha=0.3)
-
-    for i, count in enumerate(bin_counts):
-        axes[1,1].text(i, count + 5, str(count), ha='center', fontsize=10)
+    ax.set_xticks(range(len(bin_order)))
+    ax.set_xticklabels(bin_labels, fontsize=9)
+    ax.set_ylabel('Recall@20', fontsize=11)
+    ax.set_title('Recall@20 vs Selectivity', fontsize=12, fontweight='bold')
+    ax.legend(loc='best')
+    ax.grid(alpha=0.3)
+    ax.set_ylim([0, 1.1])
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/exp2_selectivity_analysis.png', dpi=150, bbox_inches='tight')
-    print(f'Saved: {output_dir}/exp2_selectivity_analysis.png')
+    plt.savefig(f'{output_dir}/exp2_recall_vs_selectivity.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp2_recall_vs_selectivity.png')
     plt.close()
 
 
-def plot_experiment3_memory_overhead(output_dir='results/figures'):
-    """Experiment 3: Memory and build time overhead"""
+def plot_exp2_latency_vs_selectivity(selectivity_df, output_dir='results/figures'):
+    """Experiment 2: P50 Latency vs Selectivity"""
     os.makedirs(output_dir, exist_ok=True)
 
-    try:
-        stats_df = pd.read_csv('results/index_stats.csv')
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    colors_map = {'PreFilter': '#3498db', 'PostFilter': '#e74c3c', 'HybridSearch': '#f39c12'}
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    bin_order = ['0.01-0.05', '0.05-0.15', '0.15-0.3', '0.3-1.0']
+    bin_labels = ['Very Selective\n(1-5%)', 'Selective\n(5-15%)',
+                  'Medium\n(15-30%)', 'High\n(>30%)']
 
-        # Memory breakdown
-        memory_data = {
-            'Index': stats_df['index_size_mb'].values[0],
-            'Signatures': stats_df['signature_size_mb'].values[0]
-        }
+    # Use only k=20
+    df_k20 = selectivity_df[selectivity_df['k'] == 20]
 
-        colors = ['#3498db', '#e74c3c']
-        bars = ax1.bar(memory_data.keys(), memory_data.values(), color=colors, alpha=0.8)
-        ax1.set_ylabel('Size (MB)', fontsize=11)
-        ax1.set_title('Memory Overhead Breakdown', fontsize=12, fontweight='bold')
-        ax1.grid(axis='y', alpha=0.3)
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-        for bar, val in zip(bars, memory_data.values()):
-            ax1.text(bar.get_x() + bar.get_width()/2, val + 0.1,
-                    f'{val:.2f} MB', ha='center', fontsize=10)
+    for method in methods:
+        data = df_k20[df_k20['method'] == method]
+        latencies = []
+        for b in bin_order:
+            matching = data[data['selectivity_bin'] == b]
+            if len(matching) > 0:
+                latencies.append(matching['p50_latency'].values[0])
+            else:
+                latencies.append(np.nan)
 
-        # Build time
-        build_time = stats_df['index_build_time_seconds'].values[0]
-        ax2.bar(['Index Build'], [build_time], color='#f39c12', alpha=0.8, width=0.4)
-        ax2.set_ylabel('Time (seconds)', fontsize=11)
-        ax2.set_title('Index Build Time', fontsize=12, fontweight='bold')
-        ax2.grid(axis='y', alpha=0.3)
-        ax2.text(0, build_time + 0.5, f'{build_time:.2f}s', ha='center', fontsize=11)
+        ax.plot(range(len(bin_order)), latencies, marker='o',
+                label=method, linewidth=2.5, markersize=8,
+                color=colors_map[method])
 
-        plt.tight_layout()
-        plt.savefig(f'{output_dir}/exp3_memory_overhead.png', dpi=150, bbox_inches='tight')
-        print(f'Saved: {output_dir}/exp3_memory_overhead.png')
-        plt.close()
+    ax.set_xticks(range(len(bin_order)))
+    ax.set_xticklabels(bin_labels, fontsize=9)
+    ax.set_ylabel('P50 Latency (ms)', fontsize=11)
+    ax.set_title('P50 Latency vs Selectivity (k=20)', fontsize=12, fontweight='bold')
+    ax.legend(loc='best')
+    ax.grid(alpha=0.3)
 
-    except Exception as e:
-        print(f'Warning: Could not generate memory overhead plot: {e}')
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/exp2_latency_vs_selectivity.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp2_latency_vs_selectivity.png')
+    plt.close()
 
 
-def print_detailed_summary(comparison_df, selectivity_df):
+def plot_exp2_query_distribution(selectivity_df, output_dir='results/figures'):
+    """Experiment 2: Query Distribution by Selectivity"""
+    os.makedirs(output_dir, exist_ok=True)
+
+    bin_order = ['0.01-0.05', '0.05-0.15', '0.15-0.3', '0.3-1.0']
+    bin_labels = ['Very Selective\n(1-5%)', 'Selective\n(5-15%)',
+                  'Medium\n(15-30%)', 'High\n(>30%)']
+
+    # Use k=20 to get query counts
+    df_k20 = selectivity_df[selectivity_df['k'] == 20]
+    bin_counts = df_k20.groupby('selectivity_bin')['n_queries'].first()
+    counts = [bin_counts[b] if b in bin_counts.index else 0 for b in bin_order]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.bar(range(len(bin_order)), counts, color='#95a5a6', alpha=0.7)
+
+    ax.set_xticks(range(len(bin_order)))
+    ax.set_xticklabels(bin_labels, fontsize=9)
+    ax.set_ylabel('Number of Queries', fontsize=11)
+    ax.set_title('Query Distribution by Selectivity', fontsize=12, fontweight='bold')
+    ax.grid(axis='y', alpha=0.3)
+
+    for i, count in enumerate(counts):
+        ax.text(i, count + max(counts)*0.02, str(count), ha='center', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/exp2_query_distribution.png', dpi=150, bbox_inches='tight')
+    print(f'Saved: {output_dir}/exp2_query_distribution.png')
+    plt.close()
+
+
+def print_summary(comparison_df, selectivity_df):
+    """Print text summary of results"""
     print("\n" + "="*70)
     print("EXPERIMENT 1: METHOD COMPARISON")
     print("="*70)
 
-    print("\n--- Overall Performance (All Queries) ---")
-    for k in [10, 20]:
+    methods = ['PreFilter', 'PostFilter', 'HybridSearch']
+    for k in [10, 20, 50]:
         print(f"\nk = {k}:")
+        df = comparison_df[comparison_df['k'] == k]
+        df = df[df['method'].isin(methods)]
         cols = ['method', f'avg_recall@{k}', 'p50_latency', 'p95_latency', 'mean_latency']
-        summary = comparison_df[comparison_df['k'] == k][cols].copy()
+        summary = df[cols].copy()
         summary.columns = ['Method', f'Recall@{k}', 'P50 (ms)', 'P95 (ms)', 'Mean (ms)']
         print(summary.to_string(index=False))
 
     print("\n" + "="*70)
-    print("EXPERIMENT 2: SELECTIVITY ANALYSIS")
+    print("EXPERIMENT 2: SELECTIVITY ANALYSIS (k=20)")
     print("="*70)
 
-    print("\n--- Recall@10 by Selectivity Range ---")
-    pivot = selectivity_df[selectivity_df['k'] == 10].pivot_table(
+    df_k20 = selectivity_df[selectivity_df['k'] == 20]
+    df_k20 = df_k20[df_k20['method'].isin(methods)]
+
+    print("\n--- Recall@20 by Selectivity ---")
+    pivot = df_k20.pivot_table(
         index='selectivity_bin',
         columns='method',
-        values='avg_recall@10'
+        values='avg_recall@20'
     )
     print(pivot.to_string())
 
-    print("\n--- P50 Latency (ms) by Selectivity Range ---")
-    pivot_latency = selectivity_df[selectivity_df['k'] == 10].pivot_table(
+    print("\n--- P50 Latency (ms) by Selectivity ---")
+    pivot_latency = df_k20.pivot_table(
         index='selectivity_bin',
         columns='method',
         values='p50_latency'
     )
     print(pivot_latency.to_string())
 
-    print("\n--- Query Distribution ---")
-    dist = selectivity_df[selectivity_df['k'] == 10].groupby('selectivity_bin')['n_queries'].first()
-    print(dist.to_string())
-
     print("\n" + "="*70)
-    print("EXPERIMENT 3: MEMORY & BUILD TIME")
-    print("="*70)
-
-    try:
-        stats = pd.read_csv('results/index_stats.csv')
-        print(f"\nIndex Build Time: {stats['index_build_time_seconds'].values[0]:.2f} seconds")
-        print(f"Index Size: {stats['index_size_mb'].values[0]:.2f} MB")
-        print(f"Signature Size: {stats['signature_size_mb'].values[0]:.2f} MB")
-        print(f"Total Size: {stats['total_size_mb'].values[0]:.2f} MB")
-    except:
-        print("\nIndex stats not available")
 
 
 def main():
@@ -250,15 +337,22 @@ def main():
     comparison_df = pd.read_csv('results/comparison.csv')
     selectivity_df = pd.read_csv('results/selectivity_analysis.csv')
 
-    print_detailed_summary(comparison_df, selectivity_df)
+    print_summary(comparison_df, selectivity_df)
 
     print("\n" + "="*70)
     print("GENERATING VISUALIZATIONS")
     print("="*70 + "\n")
 
-    plot_experiment1_method_comparison(comparison_df)
-    plot_experiment2_selectivity_analysis(selectivity_df)
-    plot_experiment3_memory_overhead()
+    # Experiment 1
+    plot_exp1_recall(comparison_df)
+    plot_exp1_p50_latency(comparison_df)
+    plot_exp1_p95_latency(comparison_df)
+    plot_exp1_mean_latency(comparison_df)
+
+    # Experiment 2
+    plot_exp2_recall_vs_selectivity(selectivity_df)
+    plot_exp2_latency_vs_selectivity(selectivity_df)
+    plot_exp2_query_distribution(selectivity_df)
 
     print("\n" + "="*70)
     print("Analysis complete! Check results/figures/ for visualizations.")
