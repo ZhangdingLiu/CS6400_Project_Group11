@@ -10,9 +10,9 @@ import json, gzip
 import numpy as np
 from huggingface_hub import hf_hub_download  # pip install huggingface_hub
 
-# file name and embedding column for each source
+
 class WikipediaDataLoader:
-    """Download & parse Wikipedia embeddings; return raw (unnormalized) arrays."""
+    """Download & parse Wikipedia embeddings; return arrays."""
 
     def __init__(self, embedding_method: str = "OpenAI", text_field: str = "body"):
         self.HF = {
@@ -38,10 +38,11 @@ class WikipediaDataLoader:
             repo_type="dataset",
         )
 
-        # Pre-allocate to the requested cap; we'll stop at N and optionally shrink.
+        # Pre-allocate to the requested cap.
         N_cap = 224_482 if n_samples is None else int(n_samples)
         d = 1536 if self.embedding_method == "OpenAI" else 384
 
+        # Store the embeddings temporarily, will be deleted later.
         X = np.memmap("tmp_embeddings.dat", dtype="float32", mode="w+", shape=(N_cap, d))
         texts: List[str] = ["" for _ in range(N_cap)]
         text_keys = [self.text_field, "body", "text", "content"]
@@ -49,7 +50,7 @@ class WikipediaDataLoader:
         i = 0
         with gzip.open(path, "rt", encoding="utf-8") as f:
             for line in f:
-                if i >= N_cap:                # <-- prevent out-of-bounds
+                if i >= N_cap:                
                     break
                 row = json.loads(line)
                 e = row.get(emb_col)
@@ -60,7 +61,6 @@ class WikipediaDataLoader:
                 i += 1
 
         # If we filled fewer than N_cap, return a view on the filled prefix.
-        # (memmap can't be resized; slicing returns a smaller memmap-like view.)
         X.flush()
         if i < N_cap:
             X_view = X[:i]
