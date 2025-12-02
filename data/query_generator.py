@@ -52,18 +52,13 @@ class QueryWorkloadGenerator:
     """Generate hybrid query workload with varying selectivity."""
 
     def __init__(self, metadata_df: pd.DataFrame, embeddings: np.ndarray, seed: int = 123) -> None:
-        if embeddings.ndim != 2:
-            raise ValueError("embeddings must be 2D (N, d).")
-        if len(metadata_df) != embeddings.shape[0]:
-            raise ValueError("metadata and embeddings must have the same number of rows.")
         self.metadata_df = metadata_df.reset_index(drop=True)
         self.embeddings = embeddings.astype(np.float32)
         self.N, self.d = self.embeddings.shape
         self.rng = np.random.default_rng(seed)
 
     def generate_query_embedding(self) -> np.ndarray:
-        # Picks 3 random rows, draws random nonnegative weights that sum to 1, 
-        # and forms a convex combo of those 3 embedding vectors.
+        # Picks 3 random rows and forms a convex combination of those 3 vectors.
         idx = self.rng.choice(self.N, size=3, replace=False)
         w = self.rng.random(3).astype(np.float32)
         w = w / (w.sum() + 1e-8)
@@ -98,17 +93,13 @@ class QueryWorkloadGenerator:
         rng = self.rng
 
 
-        # --- Decide how many filters to include (fewer for high t) ---
+        # --- Decide how many filters to include ---
         if t <= 0.05:
-            k_min, k_max = 3, 4     # 3–4 filters
             k = 3
         elif t <= 0.30:
-            k_min, k_max = 2, 3     # 2–3 filters
             k = 2
         else:
             k = 1
-            #k_min, k_max = 1, 2     # 1–2 filters
-        #k = int(rng.integers(k_min, k_max + 1))
 
         candidates: Dict[str, Dict] = {}
 
@@ -141,8 +132,7 @@ class QueryWorkloadGenerator:
                 thr = q("year", pth)
                 candidates["year"] = {"op": "LT", "value": thr}
 
-        # -------------- IMPORTANCE --------------
-        # Tie to t via a tail quantile; randomize op among GTE/GT/LT/EQ.
+        # IMPORTANCE: randomize op among GTE/GT/LT/EQ.
         p_imp = float(np.clip(1.0 - t, 0.05, 0.95))  # small t -> high quantile (stricter)
         imp_thr = q("importance", p_imp)
         op_choice = rng.choice(["GTE", "GT", "LT", "EQ"], p=[0.6, 0.15, 0.2, 0.05])
@@ -159,8 +149,7 @@ class QueryWorkloadGenerator:
                 val = int(val)
             candidates["importance"] = {"op": "EQ", "value": val}
 
-        # ---------------- REGION ----------------
-        # For small t prefer EQ to a single region; medium: IN of 2; high: maybe skip or 2–3.
+        # REGION: small t -> EQ to a single region; medium: IN of 2; high: maybe skip or 2–3.
         regions_all = ["NA", "EU", "APAC", "LATAM", "AFR"]
         if t <= 0.05:
             chosen = rng.choice(regions_all)
@@ -177,8 +166,7 @@ class QueryWorkloadGenerator:
                 # sometimes skip region entirely by not adding it to candidates
                 pass
 
-        # --------------- CATEGORY ---------------
-        # Pick top-mass categories roughly proportional to t (small t -> few cats).
+        # CATEGORY: small t -> few cats
         if t <= 0.05:
             cats = self._pick_categories_by_mass(0.05)
             if rng.random() < 0.25 and len(cats) > 0:
@@ -195,10 +183,9 @@ class QueryWorkloadGenerator:
                 # sometimes omit category entirely
                 pass
 
-        # --- Randomly choose a subset of the built candidates ---
+        # Randomly pick some candidates
         keys = list(candidates.keys())
         if len(keys) == 0:
-            # Fallback: always provide at least a year predicate
             return {"year": {"op": "GTE", "value": q("year", 0.30)}}
 
         keep_k = min(k, len(keys))
@@ -222,24 +209,6 @@ class QueryWorkloadGenerator:
             return self.rng.uniform(0.3, 0.8, size=n_queries)
         raise ValueError("selectivity_distribution must be one of {'uniform','low','medium','high'}.")
 
-    def generate_workload(self, n_queries: int, selectivity_distribution: str = "uniform") -> List[Dict]:
-        targets = self._target_selectivities(n_queries, selectivity_distribution)
-        out: List[Dict] = []
-        diff = []
-        for t in targets:
-            qvec = self.generate_query_embedding()
-            f = self.generate_filter(float(t))
-            sel = self.estimate_selectivity(f)
-            out.append({
-                "vector": qvec.tolist(),      # <-- convert to list
-                "filter": f,
-                "selectivity": float(sel),
-            })
-            diff.append(abs(t - sel))
-            # print(t, sel)
-        # optional debug:
-        print("avg", sum(diff)/len(diff))
-        return out
 
 def generate_queries(
     embeddings: np.ndarray,
@@ -250,7 +219,11 @@ def generate_queries(
 ) -> List[Dict]:
     """
     Generate a query workload with explicit per-query selectivity ranges.
-
+        - For each query i:
+            * Choose (lo, hi) = selectivity_ranges[i % len(selectivity_ranges)].
+            * Try up to a fixed number (64) of random filters.
+            * Accept the first filter with selectivity lies in [lo, hi].
+            * Otherwise, return the closest candidate.
     Args:
         embeddings:
             np.ndarray (N, d), float32. Item embeddings.
@@ -264,21 +237,12 @@ def generate_queries(
         k_value:
             The top-k value to be used by downstream search (stored per query).
 
-    Generation behavior:
-        - For each query i:
-            * Choose (lo, hi) = selectivity_ranges[i % len(selectivity_ranges)].
-            * Try up to a fixed number of random filters (and query vectors)
-              using QueryWorkloadGenerator.generate_filter().
-            * Accept the first filter whose empirical selectivity lies in [lo, hi].
-            * If no exact hit is found within the budget, use the closest candidate
-              in terms of selectivity distance to [lo, hi].
-
     Returns:
-        list[dict], where each dict has the form:
+        list[dict]
         {
-            "vector": np.ndarray of shape (d,),   # query embedding (L2-normalized)
-            "filter": filter_dict,               # structured filter
-            "selectivity": float,                # empirical fraction in [0, 1]
+            "vector": np.ndarray of shape (d,),  
+            "filter": filter_dict,               
+            "selectivity": float,              
             "k": int                             # requested top-k
         }
     """
@@ -288,7 +252,7 @@ def generate_queries(
     gen = QueryWorkloadGenerator(metadata, embeddings)
     queries: List[Dict] = []
 
-    max_tries_per_query = 64  # cap to avoid infinite loops
+    max_tries_per_query = 64  
 
     for i in range(n_queries):
         lo, hi = selectivity_ranges[i % len(selectivity_ranges)]
@@ -308,10 +272,10 @@ def generate_queries(
             f = gen.generate_filter(target)
             sel = gen.estimate_selectivity(f)  # empirical selectivity
 
-            # If we are inside the desired band, accept immediately
+            # Accept if selecitivty is inside the desired band
             if lo <= sel <= hi:
                 best_q = {
-                    "vector": qvec,          # keep as np.ndarray; caller can .tolist() if needed
+                    "vector": qvec,          
                     "filter": f,
                     "selectivity": float(sel),
                     "k": k_value,
@@ -334,44 +298,8 @@ def generate_queries(
                     "k": k_value,
                 }
 
-        # After max_tries_per_query, we either have an in-range query or the closest one we saw
-        if best_q is None:
-            raise RuntimeError("Failed to generate any query (this should not happen).")
+        # After max_tries return the closest one
         queries.append(best_q)
 
     return queries
 
-
-if __name__ == "__main__":
-    # Small synthetic smoke test
-    N, d = 200000, 384
-    emb = np.random.randn(N, d).astype(np.float32)
-    md = pd.DataFrame({
-        "year": np.random.randint(0, 101, size=N),
-        "importance": np.random.randint(1, 101, size=N),
-        "region": np.random.choice(
-            ["NA", "EU", "APAC", "LATAM", "AFR"],
-            size=N,
-            p=[0.4, 0.25, 0.2, 0.1, 0.05],
-        ),
-        "category": np.random.randint(1, 31, size=N),
-        "paragraph_len": np.random.randint(5, 400, size=N),
-    })
-
-    # Example selectivity ranges: low, medium, high
-    sel_ranges = [
-        (0.01, 0.05),
-        (0.05, 0.15),
-        (0.15, 0.40),
-    ]
-    import time
-
-    t0 = time.perf_counter()
-    qs = generate_queries(emb, md, n_queries=1000, selectivity_ranges=sel_ranges, k_value=10)
-    t1 = time.perf_counter()
-    elapsed = t1 - t0
-    print(f"[synthetic] generated {len(qs)} queries in {elapsed:.3f}s "
-          f"({elapsed / len(qs):.4f}s/query)")
-    #print(qs)
-    print("Generated", len(qs), "queries.")
-    print("Observed selectivities:", [round(q["selectivity"], 4) for q in qs])
